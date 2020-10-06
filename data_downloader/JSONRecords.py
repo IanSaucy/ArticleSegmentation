@@ -3,11 +3,17 @@ import json
 
 
 class JSONRecords:
+    MAX_RETRY_COUNT = 5
     def __init__(self, url: str):
         self._url = url
 
     def _get_record(self, **kwargs) -> requests.request:
-        return requests.get(self._url, params=kwargs)
+        retry_count = 0
+        response = requests.get(self._url, params=kwargs)
+        while response.status_code != 200 and retry_count < self.MAX_RETRY_COUNT:
+            response = requests.get(self._url, params=kwargs)
+            retry_count += 1
+        return response
 
     def get_all_records(self):
         current_page = 1

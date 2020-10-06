@@ -5,13 +5,18 @@ import requests
 
 class IssueManifest:
     REQUEST_URL = 'https://www.digitalcommonwealth.org/search/'
+    MAX_RETRY = 5
 
     def __init__(self):
         pass
 
     def _get_manifest(self, issue_id: str) -> requests.request:
+        retry_count = 0
         request_url = self.REQUEST_URL + f'{issue_id}/manifest'
         response = requests.get(request_url)
+        while response.status_code != 200 and retry_count < self.MAX_RETRY:
+            response = requests.get(request_url)
+            retry_count += 1
         if response.status_code != 200:
             raise requests.HTTPError(str(response.status_code) + ' url: ' + response.url)
         return response
