@@ -11,6 +11,13 @@ class IssueManifest:
         pass
 
     def _get_manifest(self, issue_id: str) -> requests.request:
+        '''
+        Get a single issue manifest based on the issue id
+        :param issue_id:
+        :type issue_id:
+        :return:
+        :rtype:
+        '''
         retry_count = 0
         request_url = self.REQUEST_URL + f'{issue_id}/manifest'
         response = requests.get(request_url)
@@ -22,6 +29,13 @@ class IssueManifest:
         return response
 
     def get_all_manifests(self, issue_ids: List[str]) -> List[Tuple[str, str]]:
+        '''
+        Finds all issue manifests for the given list of issue ids
+        :param issue_ids:
+        :type issue_ids:
+        :return:
+        :rtype:
+        '''
         for issue in issue_ids:
             response = self._get_manifest(issue)
             json_data = response.json()

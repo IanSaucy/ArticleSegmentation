@@ -14,6 +14,13 @@ class ImageUrl:
         return self.BASE_IMAGE_URL.format(image_id=image_id)
 
     def get_verify_image_url(self, image_id: str) -> Optional[str]:
+        '''
+        Builds and verifies an image URL using the provided image id
+        :param image_id: str representing the image id
+        :type image_id:
+        :return: full url if it exists
+        :rtype:
+        '''
         retry_count = 0
         image_url = self.build_image_url(image_id)
         response_head = requests.head(image_url)

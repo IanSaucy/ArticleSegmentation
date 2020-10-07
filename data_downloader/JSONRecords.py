@@ -8,6 +8,13 @@ class JSONRecords:
         self._url = url
 
     def _get_record(self, **kwargs) -> requests.request:
+        '''
+        Obtains a single issue/record from the api
+        :param kwargs:
+        :type kwargs:
+        :return:
+        :rtype:
+        '''
         retry_count = 0
         response = requests.get(self._url, params=kwargs)
         while response.status_code != 200 and retry_count < self.MAX_RETRY_COUNT:
@@ -16,6 +23,11 @@ class JSONRecords:
         return response
 
     def get_all_records(self):
+        '''
+        Gets all records from api. Returns a list of issue ids
+        :return: issue ids
+        :rtype:
+        '''
         current_page = 1
         has_next_page = True
         while has_next_page:
