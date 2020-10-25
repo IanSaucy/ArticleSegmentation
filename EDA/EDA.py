@@ -11,9 +11,13 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 # File Directory Methods (get_files_from_dir() method)
-from os import listdir
-from os.path import isfile, join
+import os
+# from os import listdir
+# from os.path import isfile, join
 from pathlib import Path
+
+# For calling other scripts
+import subprocess
 
 # Image Loading/Saving Methods (load_image_from_file() method)
 from PIL import Image
@@ -23,6 +27,15 @@ import io
 
 # Type Checking
 from typing import Optional, List, Tuple
+
+# Config
+from config import config
+
+############# Important Variables #############
+
+listdir = os.listdir
+isfile = os.path.isfile
+join = os.path.join
 
 ################## FUNCTIONS ##################
 
@@ -144,7 +157,7 @@ images = [load_image_from_file(path + filename) for path, filename in image_path
 print('Loaded Images!')
 
 # Store all the useful data of images in an array (width,height,format,mode,name)
-img_data = [(img.size[0],img.size[1],img.format,img.mode,img.filename,img.info) for img in images] # L -> Greyscale
+# img_data = [(img.size[0],img.size[1],img.format,img.mode,img.filename,img.info) for img in images] # L -> Greyscale
 
 # Default Initialization of min and max size
 maxWidth, maxHeight = images[0].size
@@ -184,21 +197,27 @@ print('Max Height Image: ' + str(maxHeightImage) + ', File: ' + str(maxHeightIma
 print('Min Height Image: ' + str(minHeightImage) + ', File: ' + str(minHeightImage.filename))
 
 # Seeing Info
-print('Image 0\'s Info:' + str(img_data[0][-1]))
+print('Image 0\'s Info:' + str(images[0].info))
 
-# Download clean images
+# Download clean images (Comment Out if you don't want to download)
+"""
 output_path = './cleaned_images/'
-for image in images:
+while len(images) > 0:
+    image = images.pop(0)
     clean_image(image,output_path)
+    image.close()
+"""
 
 # Plot Image Data
-plt.scatter([data[0] for data in img_data],[data[1] for data in img_data]) # Width, Height
+# plt.scatter([data[0] for data in img_data],[data[1] for data in img_data]) # Width, Height
+plt.scatter([image.size[0] for image in images],[image.size[1] for image in images]) # Width, Height
 plt.title('Height vs Width (Pixels)')
 plt.xlabel('Width (Pixels)')
 plt.ylabel('Height (Pixels)')
 plt.show()
 
-plt.scatter([x for x in range(len(img_data))],[data[-1]['jfif_unit'] for data in img_data]) # Width, Height
+# plt.scatter([x for x in range(len(img_data))],[data[-1]['jfif_unit'] for data in img_data]) # Units for pixels per space
+plt.scatter([x for x in range(len(images))],[image.info['jfif_unit'] for image in images])
 plt.title('Units for JFIF Density (Pixels)')
 plt.xlabel('Image Index')
 plt.ylabel('Unit (0: no units, 1: PPI, 2: PPC)')
@@ -206,7 +225,7 @@ plt.show()
 
 # We must resize the images to ensure:
 #   1. Same Dimensions to pass into a model/t-SNE
-#   2. Efficiency because we don't want to work on gigantic images
+#   2. Efficiency because we don't want to work on gigantic images (But we actually do want gigantic images for OCR)
 # But since we are doing OCR later we need to ensure good DPI: https://abbyy.technology/en:kb:images_resolution_size_ocr
 #   1. For regular texts (font size 8-10 points) it is recommended to use 300 dpi resolution for OCR
 #   2. If scans have a smaller resolution, for example 200 dpi, then 10 point font will be too small. To compensate the “missing” pixels, the image will be scaled internally (up to 400 dpi).
@@ -216,6 +235,40 @@ plt.show()
 #   2. ABBYY Technologies use colour information for detecting areas and objects on the image.
 #   3. So, if complex layouts have to be processed, it is recommend to use colour or at least, grey scale images
 
+# Set OS Environment Variables
+"""
+WINDOWS:
+set ABBYY_APPID=YourApplicationId
+set ABBYY_PWD=YourPassword
+
+UNIX:
+export ABBYY_APPID=YourApplicationId
+export ABBYY_PWD=YourPassword
+"""
+os.environ['ABBYY_APPID'] = config['ABBYY']['AppID']
+os.environ['ABBYY_PWD'] = config['ABBYY']['AppPassword']
+os.environ['ServerUrl'] = config['ABBYY']['ServerUrl']
+
+# Run ABBYY OCR on "unclean", "clean", and filtered data to get the results
+pythonExecutable = 'python'                 # Consider changing 'python' to sys.executable
+pythonProgPath = './ABBYY/process.py'
+imageToProcess = './output_images/8k71pf49w_8k71pf50n.jpg'
+outputFile = 'result1.txt'
+args = '{pythonExecutable} {pythonProgPath} {imageToProcess} {outputFile}'.format(
+    pythonExecutable=pythonExecutable,
+    pythonProgPath=pythonProgPath,
+    imageToProcess=imageToProcess,
+    outputFile=outputFile).split() 
+subprocess.call(args, shell=True) # Starts the process.py script which runs the AbbyyOnlineSDK, on a shell
+
+imageToProcess = './cleaned_images/8k71pf49w_8k71pf50n.jpg'
+outputFile = 'result2.txt'
+args = '{pythonExecutable} {pythonProgPath} {imageToProcess} {outputFile}'.format(
+    pythonExecutable=pythonExecutable,
+    pythonProgPath=pythonProgPath,
+    imageToProcess=imageToProcess,
+    outputFile=outputFile).split() 
+subprocess.call(args, shell=True) # Starts the process.py script which runs the AbbyyOnlineSDK, on a shell
 # Running t-SNE (Currently Not Working) (Requires images to have the same dimensions and for us to flatten them)
 """
 numpy_array_generator = image_files_to_np_arrays(path=path)

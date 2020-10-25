@@ -1,6 +1,9 @@
 # Data
 output_images
 cleaned_images
+config.py
+result1.txt
+result2.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
