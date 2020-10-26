@@ -10,6 +10,9 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 
+# To run kernel-PCA on our images to compress/reduce the dimensionality
+from sklearn.decomposition import KernelPCA
+
 # File Directory Methods (get_files_from_dir() method)
 import os
 # from os import listdir
@@ -141,6 +144,7 @@ def clean_image(image: Image, path: str, size: Optional[Tuple[int,int]]=(6027,81
 
 ################## PLAYING WITH DATA ##################
 
+"""
 # The path to the images I will be doing EDA on
 path = './output_images/'
 
@@ -198,6 +202,7 @@ print('Min Height Image: ' + str(minHeightImage) + ', File: ' + str(minHeightIma
 
 # Seeing Info
 print('Image 0\'s Info:' + str(images[0].info))
+"""
 
 # Download clean images (Comment Out if you don't want to download)
 """
@@ -208,6 +213,7 @@ while len(images) > 0:
     image.close()
 """
 
+"""
 # Plot Image Data
 # plt.scatter([data[0] for data in img_data],[data[1] for data in img_data]) # Width, Height
 plt.scatter([image.size[0] for image in images],[image.size[1] for image in images]) # Width, Height
@@ -234,6 +240,7 @@ plt.show()
 #   1. Currently ABBYY products can open images formats up to 32512*32512 pixels.
 #   2. ABBYY Technologies use colour information for detecting areas and objects on the image.
 #   3. So, if complex layouts have to be processed, it is recommend to use colour or at least, grey scale images
+"""
 
 # Set OS Environment Variables
 """
@@ -249,6 +256,7 @@ os.environ['ABBYY_APPID'] = config['ABBYY']['AppID']
 os.environ['ABBYY_PWD'] = config['ABBYY']['AppPassword']
 os.environ['ServerUrl'] = config['ABBYY']['ServerUrl']
 
+"""
 # Run ABBYY OCR on "unclean", "clean", and filtered data to get the results
 pythonExecutable = 'python'                 # Consider changing 'python' to sys.executable
 pythonProgPath = './ABBYY/process.py'
@@ -269,24 +277,111 @@ args = '{pythonExecutable} {pythonProgPath} {imageToProcess} {outputFile}'.forma
     imageToProcess=imageToProcess,
     outputFile=outputFile).split() 
 subprocess.call(args, shell=True) # Starts the process.py script which runs the AbbyyOnlineSDK, on a shell
+
+# Get rid of all images
+for i in range(len(images)):
+    image = images.pop()
+    image.close()
+
+images = []
+"""
+
 # Running t-SNE (Currently Not Working) (Requires images to have the same dimensions and for us to flatten them)
-"""
-numpy_array_generator = image_files_to_np_arrays(path=path)
-curr = next(numpy_array_generator, None)
+
+# The path to the cleaned images I will be running t-SNE on
+path = './output_images/'
+
+# Gather count of data
+print('Finding Clean Image Paths...')
+image_paths = get_files_from_dir(path)
+# image_paths_list = list(image_paths)
+print('Found All Clean Image Paths!')
+# print('Image Count: ' + str(len(image_paths_list)))
+
+# Download Image Data as PIL.Image
+print('Loading Clean Images...')
+images = []
+LIMIT = 10
 count = 0
-limit = 2
+curr = next(image_paths)
 
-X = np.array([], ndmin=2)
+STANDARD_SIZE = (6027,8191) # Width, Height
+NEW_WIDTH = int(2000)
+NEW_HEIGHT = int((STANDARD_SIZE[1] / STANDARD_SIZE[0]) * NEW_WIDTH)
+NEW_DIMENSIONS = (NEW_WIDTH,NEW_HEIGHT)
+# NEW_DIMENSIONS = (256,256)
 
-while curr is not None and count < limit:
-    np.append(X, curr.flatten().reshape(1000, 12288), axis=1)
-    curr = next(numpy_array_generator)
+# SVD (Singular Value Decomposition) it does essentially the same thing as PCA finding eigen vectors and ranking them by most important
+# https://medium.com/@rameshputalapattu/jupyter-python-image-compression-and-svd-an-interactive-exploration-703c953e44f6
+def compress_svd(image,k):
+    U,s,V = np.linalg.svd(image,full_matrices=False)
+    reconst_matrix = np.dot(U[:,:k],np.dot(np.diag(s[:k]),V[:k,:]))
+    return reconst_matrix,s
+
+while curr is not None and count < LIMIT:
+    path, filename = curr    
+    # Resize to smaller images, and Black&White for t-SNE  
+    image = load_image_from_file(path + filename)    
+    image = image.convert('L')
+    # image = image.convert('L').resize(NEW_DIMENSIONS)
+    images.append(image)
     count += 1
+print('Loaded Clean Images!')
 
-print(len(X))
+# Show one of the images
+# images[0].show()
+
+# https://stackoverflow.com/questions/56491301/how-to-know-if-the-image-data-set-is-linearly-separable-or-not
+# I would argue that most image datasets are linearly separable but the separation is useless. Because images usually live in a high-dimensional space, and as long as you have more features than samples everything is linearly separable (with probability 1)
+# Gaussian radius basis function (RBF) kernel that is used to perform nonlinear dimensionality reduction via BF kernel principal component analysis (kPCA)
+desired_size = (256, 256)
+number_of_components = desired_size[0] * desired_size[1]
+print('Number of components: ' + str(number_of_components))
+transformer = KernelPCA(n_components=number_of_components, kernel='rbf') # Components being eigen vectors kept (Eigen vectors sorted in descending order of importance)
+
+k = 150
+nparrays = [] # Convert image to Numpy array, then flatten to a 1D list
+for image in images:
+    # compressed_image_array, s = compress_svd(np.asarray(image),k)
+    # compressed_image = Image.fromarray(compressed_image_array)
+    # print(compressed_image_array.shape)
+    # compressed_image.show()
+    nparrays.append(np.asarray(image).flatten())
+    # nparrays.append(np.asarray(image))
+    image.close()
+
+X = np.array(nparrays)
+images = []
 print(X.shape)
+print("X: %d bytes" % X.size * X.itemsize)
+print()
 
-Y = tsne(X, 2, 50, 20.0)
-plt.scatter(Y[:, 0], Y[:, 1], 20)
-plt.show()
-"""
+# To apply PCA on image data, the images need to be converted to a one-dimensional vector representation using, for example, NumPy’s flatten() method.
+X_transformed = transformer.fit_transform(X)
+print(X_transformed.shape)
+print("X_transformed: %d bytes" % (X_transformed.size * X_transformed.itemsize))
+print()
+
+# We need to reshape data if we want to convert it back into an image
+X_transformed.reshape(desired_size)
+print(X_transformed.shape)
+
+# numpy_array_generator = image_files_to_np_arrays(path=path)
+# curr = next(numpy_array_generator, None)
+# count = 0
+# limit = 2
+
+# X = np.array([], ndmin=2)
+
+# while curr is not None and count < limit:
+#     np.append(X, curr.flatten().reshape(1000, 12288), axis=1)
+#     curr = next(numpy_array_generator)
+#     count += 1
+
+# print(len(X))
+# print(X.shape)
+
+### T-SNE - LINE 104: (l, M) = np.linalg.eig(np.dot(X.T, X)), this creates an (X,X) matrix where X is the number of pixels in the image
+# Y = tsne(X, 2, 50, 20.0)    # Memory error working with full size clean images, apparently even 256 x 256 BW images
+# plt.scatter(Y[:, 0], Y[:, 1], 20)
+# plt.show()
