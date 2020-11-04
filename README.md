@@ -14,7 +14,7 @@ You need to load `python3/3.7.7` and put the shared python packaged library on y
 
 - Python 3.7
 - Pipenv
-- Pre-trained model from dropbox [here](https://www.dropbox.com/sh/4b1ub2bmmgmbprp/AAC88d8h8oZVgt-4WC5_uNloa?dl=0)
+- Pre-trained model from dropbox [here](https://www.dropbox.com/sh/7tph1tzscw3cb8r/AAA9WxhqoKJu9jLfVU5GqgkFa?dl=0)
 
 Download and extract the model to `05_prediction/data/models`
 
