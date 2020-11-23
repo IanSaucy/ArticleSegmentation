@@ -3,7 +3,7 @@ Project Code for CS501 Libeartor Project
 
 # Model
 Credit for the original base: https://github.com/poke1024/bbz-segment
-We hae some outstanding upstream commits that we will open a PR for soon. 
+We have forked the project and are implementing our own changes. This fork is setup as a sub-module under Git.
 
 ### SCC Usage \<TODO>
 If you want to skip the setup of the below you can run directly on the SCC. 
