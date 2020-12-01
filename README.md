@@ -1,3 +1,8 @@
+# Grader Note
+We moved the code directly relating to the model into a sub-module -- which means that changes are not directly reflected here in this repo until we pull those update into one of the branches. As such, you should also check that module directly(it's a public repo).
+
+If there are any question ask Ian since he(me) set that bit up!
+
 # CS501-Liberator-Project
 Project Code for CS501 Libeartor Project
 
