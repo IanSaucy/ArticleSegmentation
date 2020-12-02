@@ -1,0 +1,3 @@
+[submodule "bbz-segment"]
+	path = bbz-segment
+	url = https://github.com/IanSaucy/bbz-segment.git
