@@ -428,6 +428,16 @@ Image {
 
 ### TESSERACT - https://www.pyimagesearch.com/2017/07/10/using-tesseract-ocr-python/ (Typos) ###
 
+def use_tesseract_img(image: Image):
+
+    # Set Tesseract Path
+    pytesseract.pytesseract.tesseract_cmd = r'D:\\PyTesseract\\tesseract.exe'
+
+    # Run OCR
+    text = pytesseract.image_to_string(image)
+
+    return text
+
 def use_tesseract(image_path: str, preprocess: str):
 
     # Set Tesseract Path
@@ -512,10 +522,12 @@ def use_abbyy(image_path: str, output_path: str):
 ### Unpacking Test JSON ###
 
 from typing import Dict
+import json
+
+output_json_filename = 'article_ocr.json'
 
 def unpack_json():
-    
-    import json
+        
     json_path = './ExampleJSONs/test_polygons.json'
 
     with open(json_path) as f:
@@ -535,32 +547,89 @@ def image_to_article_OCR():
     if is_empty:
         print('Empty!')
     else:
+
+        # Create output JSON
+        output_file = open(output_json_filename, "w")
+
         for i in range(len(images)):
             # List of images to run OCR on
             image = images[i]
 
+            # Create "Text" key in the dictionary
+            image['Text'] = []
+
             image_path = image['Path']
             articles = image['Article']
+
+            # Open Image
+            original_image = Image.open(image_path) # Image to extract articles from
 
             for j in range(len(articles)):
                 # List of polygons for the Article at index "j"
                 polygons = articles[j] 
 
-                article_to_OCR(image_path, polygons)
+                ocr_output = article_to_OCR(original_image, polygons)
 
-def article_to_OCR(image_path, polygons):
+                image['Text'].append(ocr_output)
+    
+        json.dump(images, output_file, indent=4, separators=(',', ': '))
+
+def article_to_OCR(newspaper_image, polygons):
     """
         Input: A single article (List of bounding boxes) to run OCR on
         Output: List of text that is the OCR result from each article/bounding box
     """
+
+    polygon_outputs = []
+
     for k in range(len(polygons)):
         # A single bounding box for the Article at "j" (There are multiple boxes if it spans multiple columns)
         polygon = polygons[k]
 
+        # Should be (Left, Top, Right, Bottom)
         bounding_box = (polygon['X1'], polygon['Y1'], polygon['X2'], polygon['Y2'])
 
-        filename = get_filename(image_path)
+        if (not valid_crop(bounding_box)): 
+            print("invalid cropping rectangle! " + str(bounding_box) + " Skipping...")
+            # Have to write "Bounding Box Error" in the JSON at the index
+            continue
+
+        ### DEBUGGING ### 
+        filename = get_filename(newspaper_image.filename)
         print('Article: ' + str(filename) + ", Bounding Box " + str(k) + ": " + str(bounding_box))
+        #---------------#        
+
+        # Crop image
+        cropped_image = newspaper_image.crop(bounding_box)
+
+        # Run OCR on cropped image
+        ocr_ouput = use_tesseract_img(cropped_image)
+
+        ### DEBUGGING ###
+        # cropped_image.show()
+        #---------------#
+
+        ### DEBUGGING ###
+        # print(ocr_ouput)
+        #---------------#
+
+        # Add ocr output into the list of outputs
+        polygon_outputs.append(ocr_ouput)
+    
+    return polygon_outputs
+
+def valid_crop(rectangle: Tuple[int,int,int,int]):
+    is_tuple_of_four = left_top_right_bottom = False
+
+    is_tuple_of_four = (isinstance(rectangle, tuple) and len(rectangle) == 4)
+    if is_tuple_of_four: left_top_right_bottom = (rectangle[0] < rectangle[2] and rectangle[1] < rectangle[3])
+
+    ### DEBUGGING ### 
+    # print("tuple of four: " + str(is_tuple_of_four))
+    # print("Correct coordinates: " + str(left_top_right_bottom))
+    #---------------#
+
+    return is_tuple_of_four and left_top_right_bottom
 
 def path_leaf(path):
     import ntpath
