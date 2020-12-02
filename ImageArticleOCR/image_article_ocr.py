@@ -21,7 +21,7 @@ Output: JSON file with:
 """
 
 ### IMPORT STATEMENTS ###
-from typing import Tuple
+from typing import Tuple, Dict, List
 import pytesseract
 import subprocess
 from PIL import Image
@@ -42,24 +42,29 @@ output_json_filename = 'article_ocr.json'
 
 ### OCR wrapper ###
 
-def use_ocr(image: Image, ocr_type: str):    
+def use_ocr(image: Image, ocr_type: str) -> str:    
+
+    output = ''
 
     if ocr_type == TESSER_OCR:
-        use_tesseract_img(image)
+        output = use_tesseract_img(image)
 
-    # elif ocr_type == ABBYY_OCR:
-    #     output_path = './results.txt'  
-    #     cropped_img_name = 'temp_cropped_image.jpg' 
-    #     image.save(cropped_img_name)
-    #     use_abbyy(cropped_img_name, output_path)
-    #     os.remove(cropped_img_name)
+    elif ocr_type == ABBYY_OCR:
+        output_path = './results.txt'  
+        cropped_img_name = 'temp_cropped_image.jpg' 
+        image.save(cropped_img_name)
+        output = use_abbyy(cropped_img_name, output_path)
+        os.remove(cropped_img_name)
+        os.remove(output_path)
 
     else:
         print('Not a valid OCR choice')
 
+    return output
+
 ### TESSERACT OCR ###
 
-def use_tesseract_img(image: Image):
+def use_tesseract_img(image: Image) -> str:
 
     # Run OCR
     text = pytesseract.image_to_string(image)
@@ -68,7 +73,7 @@ def use_tesseract_img(image: Image):
 
 ### ABBYY OCR ###
 
-def use_abbyy(image_path: str, output_path: str):
+def use_abbyy(image_path: str, output_path: str) -> str:
 
     pythonExecutable = 'python'
     pythonProgPath = abbyy_dir_path + '/process.py'
@@ -89,7 +94,7 @@ def use_abbyy(image_path: str, output_path: str):
         
 ### OTHER FUNCTIONS ###
 
-def unpack_json(json_path):   
+def unpack_json(json_path) -> Dict[str,str]:   
 
     with open(json_path) as f:
         data = json.load(f)
@@ -97,7 +102,7 @@ def unpack_json(json_path):
 
     return {}
 
-def valid_crop(rectangle: Tuple[int,int,int,int]):
+def valid_crop(rectangle: Tuple[int,int,int,int]) -> bool:
     is_tuple_of_four = left_top_right_bottom = False
 
     is_tuple_of_four = (isinstance(rectangle, tuple) and len(rectangle) == 4)
@@ -110,18 +115,18 @@ def valid_crop(rectangle: Tuple[int,int,int,int]):
 
     return is_tuple_of_four and left_top_right_bottom
 
-def path_leaf(path):
+def path_leaf(path) -> str:
     import ntpath
     head, tail = ntpath.split(path)
     return tail or ntpath.basename(head)
 
-def get_filename(path):
+def get_filename(path) -> str:
     return os.path.splitext(path_leaf(path))[0]
 
 ### KEY FUNCTIONS ###
 
 # Call this function to handle everything
-def image_to_article_OCR(json_path, ocr_to_use):
+def image_to_article_OCR(json_path, ocr_to_use) -> None:
     """
         Input: A JSON file with the above specified variables
         Output: A JSON file of the same variables PLUS the blocks of text outputted from OCR on the bounding boxes of the images
@@ -159,7 +164,7 @@ def image_to_article_OCR(json_path, ocr_to_use):
     
         json.dump(images, output_file, indent=4, separators=(',', ': '))
 
-def article_to_OCR(newspaper_image, polygons, ocr_to_use):
+def article_to_OCR(newspaper_image, polygons, ocr_to_use) -> List[str]:
     """
         Input: A single article (List of bounding boxes) to run OCR on
         Output: List of text that is the OCR result from each article/bounding box
@@ -229,25 +234,25 @@ if __name__ == '__main__':
     pytesseract.pytesseract.tesseract_cmd = args['tesseract']
 
     ### Set ABBYY Variables
-    # abbyy_dir_path = args['abbyy']
+    abbyy_dir_path = args['abbyy']
 
     ### If abbyy path was passed in, Initialize
-    # if abbyy_dir_path:
+    if abbyy_dir_path:
 
-    #     with open(abbyy_dir_path + '\\config.json') as config_json:
-    #         config = json.load(config_json)
+        with open(abbyy_dir_path + '\\config.json') as config_json:
+            config = json.load(config_json)
         
-    #         # Loads up necessary information for ABBYY
-    #         os.environ['ABBYY_APPID'] = config['ABBYY']['AppID']
-    #         os.environ['ABBYY_PWD'] = config['ABBYY']['AppPassword']
-    #         os.environ['ServerUrl'] = config['ABBYY']['ServerUrl']
+            # Loads up necessary information for ABBYY
+            os.environ['ABBYY_APPID'] = config['ABBYY']['AppID']
+            os.environ['ABBYY_PWD'] = config['ABBYY']['AppPassword']
+            os.environ['ServerUrl'] = config['ABBYY']['ServerUrl']
 
     ### Choosing the OCR to use
     ocr_to_use = None
     if args['tesseract']:
         ocr_to_use = TESSER_OCR
-    # elif args['abbyy']:
-    #     ocr_to_use = ABBYY_OCR
+    elif args['abbyy']:
+        ocr_to_use = ABBYY_OCR
 
     if ocr_to_use == None:
         print('No valid OCR choice! Exiting...')
