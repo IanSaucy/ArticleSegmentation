@@ -286,10 +286,7 @@ for i in range(len(images)):
 images = []
 """
 
-<<<<<<< HEAD
 """
-=======
->>>>>>> d2b4eae4c3fb26bae07d03860323c620a51c9ce6
 # Running t-SNE (Currently Not Working) (Requires images to have the same dimensions and for us to flatten them)
 
 # The path to the cleaned images I will be running t-SNE on
