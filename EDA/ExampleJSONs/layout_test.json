@@ -1,6 +1,5 @@
 "Article": [
     {   
-        // Tabular
         "Polygons": [
             {
                 "X1": 104, 
@@ -10,7 +9,6 @@
             },
         ],
 
-        // Small Note
         "Polygons2": [
             {
                 "X1": 116, 
@@ -20,7 +18,6 @@
             }
         ],
 
-        // Article 1
         "Polygons3": [
             {
                 "X1": 124, 
@@ -42,7 +39,6 @@
             }
         ],
 
-        // Article 2
         "Polygons4": [
             {
                 "X1": 1480, 
@@ -64,7 +60,6 @@
             }
         ],
 
-        // Excerpt by Nathaniel Paul
         "Polygons5": [
             {
                 "X1": 2808, 
@@ -74,7 +69,6 @@
             }
         ],
 
-        // Poem
         "Polygons6": [
             {
                 "X1": 2808, 

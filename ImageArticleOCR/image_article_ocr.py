@@ -76,7 +76,8 @@ def use_tesseract_img(image: Image) -> str:
 def use_abbyy(image_path: str, output_path: str) -> str:
 
     pythonExecutable = 'python'
-    pythonProgPath = abbyy_dir_path + '/process.py'
+    pythonProgPath = pathlib.Path.joinpath(abbyy_dir_path, '/process.py')
+    # pythonProgPath = abbyy_dir_path + '/process.py'
     args = '{pythonExecutable} {pythonProgPath} {imageToProcess} {outputFile}'.format(
         pythonExecutable=pythonExecutable,
         pythonProgPath=pythonProgPath,
@@ -132,9 +133,8 @@ def image_to_article_OCR(json_path, ocr_to_use) -> None:
         Output: A JSON file of the same variables PLUS the blocks of text outputted from OCR on the bounding boxes of the images
     """
     images = unpack_json(json_path)
-    is_empty = not images
 
-    if is_empty:
+    if not images:
         print('Empty!')
     else:
 
@@ -152,22 +152,40 @@ def image_to_article_OCR(json_path, ocr_to_use) -> None:
             articles = image['Article']
 
             # Open Image
-            original_image = Image.open(image_path) # Image to extract articles from
+            try:
+                
+                # Try to open the original image path
+                original_image = Image.open(image_path) # Image to extract articles from
 
-            for j in range(len(articles)):
-                # List of polygons for the Article at index "j"
-                polygons = articles[j] 
+            except:
 
-                ocr_output = article_to_OCR(original_image, polygons, ocr_to_use)
+                original_image = None
 
-                image['Text'].append(ocr_output)
+            # If the image was able to be opened then go ahead and run OCR on it
+            if original_image:
+
+                for j in range(len(articles)):
+                    # List of polygons for the Article at index "j"
+                    polygons = articles[j] 
+
+                    ocr_output = article_to_OCR(original_image, polygons, ocr_to_use)
+
+                    image['Text'].append(ocr_output)
     
         json.dump(images, output_file, indent=4, separators=(',', ': '))
 
-def article_to_OCR(newspaper_image, polygons, ocr_to_use) -> List[str]:
+def article_to_OCR(newspaper_image: Image, polygons: Dict[str, Dict[str, int]], ocr_to_use) -> List[str]:
     """
         Input: A single article (List of bounding boxes) to run OCR on
         Output: List of text that is the OCR result from each article/bounding box
+
+        NOTE: polygons will be in the form:
+                {
+                    'X1': int,
+                    'Y1': int,
+                    'X2': int,
+                    'Y2': int
+                }
     """
 
     polygon_outputs = []
@@ -177,7 +195,10 @@ def article_to_OCR(newspaper_image, polygons, ocr_to_use) -> List[str]:
         polygon = polygons[k]
 
         # Should be (Left, Top, Right, Bottom)
-        bounding_box = (polygon['X1'], polygon['Y1'], polygon['X2'], polygon['Y2'])
+        try:
+            bounding_box = (polygon['X1'], polygon['Y1'], polygon['X2'], polygon['Y2'])
+        except:
+            bounding_box = None
 
         if (not valid_crop(bounding_box)): 
             print("invalid cropping rectangle! " + str(bounding_box) + " Skipping...")
@@ -186,8 +207,8 @@ def article_to_OCR(newspaper_image, polygons, ocr_to_use) -> List[str]:
             continue
 
         ### DEBUGGING ### 
-        filename = get_filename(newspaper_image.filename)
-        print('Article: ' + str(filename) + ", Bounding Box " + str(k) + ": " + str(bounding_box))
+        # filename = get_filename(newspaper_image.filename)
+        # print('Article: ' + str(filename) + ", Bounding Box " + str(k) + ": " + str(bounding_box))
         #---------------#        
 
         # Crop image
@@ -196,7 +217,16 @@ def article_to_OCR(newspaper_image, polygons, ocr_to_use) -> List[str]:
 
         # Run OCR on cropped image
         # ocr_output = use_tesseract_img(cropped_image)
-        ocr_output = use_ocr(cropped_image, ocr_to_use)
+        try:
+
+            # Try to run OCR if possible
+            ocr_output = use_ocr(cropped_image, ocr_to_use)
+
+            # Add ocr output into the list of outputs
+            polygon_outputs.append(ocr_output)
+
+        except:
+            ocr_output = 'Failed OCR'
 
         ### DEBUGGING ###
         # cropped_image.show()
@@ -205,9 +235,6 @@ def article_to_OCR(newspaper_image, polygons, ocr_to_use) -> List[str]:
         ### DEBUGGING ###
         # print(ocr_output)
         #---------------#
-
-        # Add ocr output into the list of outputs
-        polygon_outputs.append(ocr_output)
     
     return polygon_outputs
 

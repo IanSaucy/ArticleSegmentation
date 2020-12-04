@@ -20,6 +20,8 @@ You need to load `python3/3.7.7` and put the shared python packaged library on y
 - Python 3.7
 - Pipenv
 - Pre-trained model from dropbox [here](https://www.dropbox.com/sh/7tph1tzscw3cb8r/AAA9WxhqoKJu9jLfVU5GqgkFa?dl=0)
+- OCR model if using tesseract. Install [Google Tesseract OCR](https://github.com/tesseract-ocr/tesseract) (additional info how to install the engine on Linux, Mac OSX and Windows).
+- config.json file with ABBYY API ID, Password, and server url if you are using ABBYY OCR! [ABBYY OCR](https://www.ocrsdk.com/), also must have the code to run the ABBYY Online SDK downloaded and include the path to that and that config.json file when using it
 
 Download and extract the model to `05_prediction/data/models`
 
