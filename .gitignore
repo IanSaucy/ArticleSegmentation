@@ -2,8 +2,13 @@
 output_images
 cleaned_images
 config.py
+config.json
+result.txt
 result1.txt
 result2.txt
+corpus.zip
+article_ocr.json
+test_polygons.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

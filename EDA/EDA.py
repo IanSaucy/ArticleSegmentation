@@ -286,6 +286,7 @@ for i in range(len(images)):
 images = []
 """
 
+"""
 # Running t-SNE (Currently Not Working) (Requires images to have the same dimensions and for us to flatten them)
 
 # The path to the cleaned images I will be running t-SNE on
@@ -385,3 +386,259 @@ print(X_transformed.shape)
 # Y = tsne(X, 2, 50, 20.0)    # Memory error working with full size clean images, apparently even 256 x 256 BW images
 # plt.scatter(Y[:, 0], Y[:, 1], 20)
 # plt.show()
+"""
+
+### OCR EDA (Which OCR is the best on cropped image) ###
+
+# OCR imports
+import pytesseract
+
+import calamari_ocr     # Only works on lines
+import ocr4all
+
+import ABBYY
+
+# Supporting Imports
+from PIL import Image
+import cv2
+import argparse
+import pathlib
+import os
+
+"""
+(Create these JSON files manually to test)
+Assume JSON file with:
+Image {
+    Path: 'str',
+    Article: [
+        Polygons: [{X1: x, Y1: y, X2: x, Y2: y}]
+    ]
+}
+"""
+
+# Path to Images: ..\bbz-segment\05_prediction\data\pages
+
+### construct the argument parse and parse the arguments ###
+# ap = argparse.ArgumentParser()
+# ap.add_argument("-i", "--image", required=True,
+# 	help="path to input image to be OCR'd")
+# ap.add_argument("-p", "--preprocess", type=str, default="thresh",
+# 	help="type of preprocessing to be done")
+# args = vars(ap.parse_args())
+
+### TESSERACT - https://www.pyimagesearch.com/2017/07/10/using-tesseract-ocr-python/ (Typos) ###
+
+def use_tesseract_img(image: Image):
+
+    # Set Tesseract Path
+    pytesseract.pytesseract.tesseract_cmd = r'D:\\PyTesseract\\tesseract.exe'
+
+    # Run OCR
+    text = pytesseract.image_to_string(image)
+
+    return text
+
+def use_tesseract(image_path: str, preprocess: str):
+
+    # Set Tesseract Path
+    pytesseract.pytesseract.tesseract_cmd = r'D:\\PyTesseract\\tesseract.exe'
+
+    # load the example image and convert it to grayscale
+    image = cv2.imread(image_path)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # check to see if we should apply thresholding to preprocess the
+    # image
+    if preprocess == "thresh":
+        gray = cv2.threshold(gray, 0, 255,
+            cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+
+    # make a check to see if median blurring should be done to remove
+    # noise
+    elif args["preprocess"] == "blur":
+        gray = cv2.medianBlur(gray, 3)
+
+    # write the grayscale image to disk as a temporary file so we can
+    # apply OCR to it
+    filename = "{}.png".format(os.getpid())
+    cv2.imwrite(filename, gray)
+
+    # load the image as a PIL/Pillow image, apply OCR, and then delete
+    # the temporary file
+    text = pytesseract.image_to_string(Image.open(filename))
+    os.remove(filename)
+    print(text)
+
+    # show the output images
+    cv2.imshow("Image", image)
+    cv2.imshow("Output", gray)
+    cv2.waitKey(0)
+
+### Calamari OCR - (Not returning any results - https://github.com/Calamari-OCR/calamari/issues/175) ###
+
+def use_calamari(checkpoint: str, image_path: str):
+    """
+        ###  ###
+        checkpoint: *.ckpt.json file
+    """
+
+    # checkpoint = Path(checkpoint).resolve()
+    # image_path = Path(image_path).resolve()
+
+    ### Sub process ###
+    cmd = 'calamari-predict --checkpoint \"{checkpoint}\" --files \"{image_path}\"'.format(checkpoint=checkpoint, image_path=image_path)
+    subprocess.run(cmd) # Starts Calamari
+
+### ABBYY OCR ###
+
+def use_abbyy(image_path: str, output_path: str):
+
+    os.environ['ABBYY_APPID'] = config['ABBYY']['AppID']
+    os.environ['ABBYY_PWD'] = config['ABBYY']['AppPassword']
+    os.environ['ServerUrl'] = config['ABBYY']['ServerUrl']
+
+    pythonExecutable = 'python'
+    pythonProgPath = './ABBYY/process.py'
+    args = '{pythonExecutable} {pythonProgPath} {imageToProcess} {outputFile}'.format(
+        pythonExecutable=pythonExecutable,
+        pythonProgPath=pythonProgPath,
+        imageToProcess=image_path,
+        outputFile=output_path).split() 
+    subprocess.call(args, shell=True) # Starts the process.py script which runs the AbbyyOnlineSDK, on a shell
+
+### Testing OCR ###
+
+# image_path = args["image"]
+# preprocess = args["preprocess"]
+
+# checkpoint = "D:\\Calamari\\calamari_models-1.0\\calamari_models-1.0\\antiqua_historical\\4.ckpt.json"
+
+# output_path = './abbyy_output.txt'
+
+# use_tesseract(image_path, preprocess)
+# use_calamari(checkpoint, image_path)      # DIDNT WORK
+# use_abbyy(image_path, output_path)
+
+### Unpacking Test JSON ###
+
+from typing import Dict
+import json
+
+output_json_filename = 'article_ocr.json'
+
+def unpack_json():
+        
+    json_path = './ExampleJSONs/test_polygons.json'
+
+    with open(json_path) as f:
+        data = json.load(f)
+        return data
+
+    return {}
+
+def image_to_article_OCR():
+    """
+        Input: A JSON file with the above specified variables
+        Output: A JSON file of the same variables PLUS the blocks of text outputted from OCR on the bounding boxes of the images
+    """
+    images = unpack_json()
+    is_empty = not images
+
+    if is_empty:
+        print('Empty!')
+    else:
+
+        # Create output JSON
+        output_file = open(output_json_filename, "w")
+
+        for i in range(len(images)):
+            # List of images to run OCR on
+            image = images[i]
+
+            # Create "Text" key in the dictionary
+            image['Text'] = []
+
+            image_path = image['Path']
+            articles = image['Article']
+
+            # Open Image
+            original_image = Image.open(image_path) # Image to extract articles from
+
+            for j in range(len(articles)):
+                # List of polygons for the Article at index "j"
+                polygons = articles[j] 
+
+                ocr_output = article_to_OCR(original_image, polygons)
+
+                image['Text'].append(ocr_output)
+    
+        json.dump(images, output_file, indent=4, separators=(',', ': '))
+
+def article_to_OCR(newspaper_image, polygons):
+    """
+        Input: A single article (List of bounding boxes) to run OCR on
+        Output: List of text that is the OCR result from each article/bounding box
+    """
+
+    polygon_outputs = []
+
+    for k in range(len(polygons)):
+        # A single bounding box for the Article at "j" (There are multiple boxes if it spans multiple columns)
+        polygon = polygons[k]
+
+        # Should be (Left, Top, Right, Bottom)
+        bounding_box = (polygon['X1'], polygon['Y1'], polygon['X2'], polygon['Y2'])
+
+        if (not valid_crop(bounding_box)): 
+            print("invalid cropping rectangle! " + str(bounding_box) + " Skipping...")
+            # Have to write "Bounding Box Error" in the JSON at the index
+            continue
+
+        ### DEBUGGING ### 
+        filename = get_filename(newspaper_image.filename)
+        print('Article: ' + str(filename) + ", Bounding Box " + str(k) + ": " + str(bounding_box))
+        #---------------#        
+
+        # Crop image
+        cropped_image = newspaper_image.crop(bounding_box)
+
+        # Run OCR on cropped image
+        ocr_ouput = use_tesseract_img(cropped_image)
+
+        ### DEBUGGING ###
+        # cropped_image.show()
+        #---------------#
+
+        ### DEBUGGING ###
+        # print(ocr_ouput)
+        #---------------#
+
+        # Add ocr output into the list of outputs
+        polygon_outputs.append(ocr_ouput)
+    
+    return polygon_outputs
+
+def valid_crop(rectangle: Tuple[int,int,int,int]):
+    is_tuple_of_four = left_top_right_bottom = False
+
+    is_tuple_of_four = (isinstance(rectangle, tuple) and len(rectangle) == 4)
+    if is_tuple_of_four: left_top_right_bottom = (rectangle[0] < rectangle[2] and rectangle[1] < rectangle[3])
+
+    ### DEBUGGING ### 
+    # print("tuple of four: " + str(is_tuple_of_four))
+    # print("Correct coordinates: " + str(left_top_right_bottom))
+    #---------------#
+
+    return is_tuple_of_four and left_top_right_bottom
+
+def path_leaf(path):
+    import ntpath
+    head, tail = ntpath.split(path)
+    return tail or ntpath.basename(head)
+
+def get_filename(path):
+    return os.path.splitext(path_leaf(path))[0]
+
+### Testing JSON Code ###
+
+image_to_article_OCR()
