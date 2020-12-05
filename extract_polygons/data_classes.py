@@ -22,6 +22,8 @@ class Box(NamedTuple):
     top_right: Point
     bot_left: Point
     bot_right: Point
+    img_id: str
+    box_text: str
 
 
 class Article:

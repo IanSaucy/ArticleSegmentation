@@ -1,35 +1,55 @@
-from typing import List
-
+import glob
+from collections import defaultdict
+from pathlib import Path
+from typing import List, Tuple
+from tqdm import tqdm
 import numpy as np
 import cv2 as cv
-from Polygons.LabeledPage import LabeledPage
-from Polygons.Point import Article
-
+from extract_polygons.labeled_page import LabeledPage
+from extract_polygons.data_classes import Article
 from extract_polygons.polygon_utils import random_color
 
-labels = np.load('./8k71pf49w_8k71pf51x-labels.sep.npy')
 
-page = LabeledPage(labels, (3672, 5298))
-vert_seps = page.find_all_vertical_sep()
-articles: List[Article] = page.find_article_boxes(vert_seps)
-source_img = cv.imread('./8k71pf49w_8k71pf51x.jpg')
-for index, article in enumerate(articles):
-    color = random_color()
-    img = cv.imread('./8k71pf49w_8k71pf51x.jpg')
-    for box in article.get_boxes():
-        cv.rectangle(source_img, (box.top_left.col, box.top_left.row), (box.bot_right.col, box.bot_right.row),
-                     color, 5)
-        cv.rectangle(img, (box.top_left.col, box.top_left.row), (box.bot_right.col, box.bot_right.row),
-                     color, 5)
-    cv.imwrite(f'annotated_{index}.jpg', img)
-cv.imwrite(f'annotated.jpg', source_img)
+def segment_all_images(np_file_dir: str, output_folder: str, debug=False, img_dir: str = None) -> int:
+    if debug and not Path(img_dir).exists():
+        raise FileNotFoundError("Folder not found")
+    if not Path(np_file_dir).exists():
+        raise FileNotFoundError("Folder not found")
+    if not Path(output_folder).exists():
+        raise FileNotFoundError("Folder not found")
 
-# res = page._find_horz_sep_in_range(860, 1540, 240, 5279)
-print(articles)
-# res = page.find_all_vertical_sep()
-# print(res)
+    numpy_file_list = list(Path(np_file_dir).glob('*.npy'))
+    issue_map = defaultdict(list)
+    for file in tqdm(numpy_file_list):
+        issue_id, image_id = str(file.stem).split('_')
+        labels, original_size = np.load(str(file), allow_pickle=True)
+        articles = segment_single_image(labels, original_size, img_dir, debug, output_folder)
+        issue_map.update(issue_id, )
 
-# Remove everything but vertical separators
-# labels_vert = reduce_to_single_label(labels, VERT)
-# labels = reduce_to_single_label(labels, VERT)
-# resized = cv.resize(labels_vert, (3672, 5298), interpolation=cv.INTER_AREA)
+
+def segment_single_image(input_img_array: np.array, original_size: Tuple[int, int], input_image_src: str = None,
+                         debug=False, output_folder: str = None) \
+        -> List[Article]:
+    if debug:
+        if not Path(input_image_src).exists():
+            raise FileNotFoundError
+        if not Path(output_folder).exists():
+            raise FileNotFoundError
+
+    page = LabeledPage(input_img_array, original_size)
+    # Takes a bit to run
+    articles = page.segment_single_image()
+    if debug:
+        annotate_image(input_image_src, articles)
+    return articles
+
+
+def annotate_image(input_img_scr: str, articles: List[Article]) -> None:
+    source_img = cv.imread(input_img_scr)
+    source_img_name = Path(input_img_scr).stem
+    for index, article in enumerate(articles):
+        color = random_color()
+        for box in article.get_boxes():
+            cv.rectangle(source_img, (box.top_left.col, box.top_left.row), (box.bot_right.col, box.bot_right.row),
+                         color, 5)
+    cv.imwrite(f'{source_img_name}_annotated.jpg', source_img)

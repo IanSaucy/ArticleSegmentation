@@ -8,6 +8,7 @@ verify_ssl = true
 [packages]
 numpy = ">=1.19"
 opencv-python = ">=4.4"
+tqdm = "*"
 
 [requires]
 python_version = "3.7"

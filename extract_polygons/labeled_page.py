@@ -9,6 +9,14 @@ from extract_polygons.constants import ExpectedValues
 from extract_polygons.data_classes import Point, VerticalSeparator, HorizontalSeparator, Article, Box
 import cv2 as cv
 
+"""
+This file contains the heart of this package. It contains all the algorithms
+for interpreting a labeled image(given via a 2D array) and forming bounding boxes
+around each section in the image that represent an (part) article. 
+
+If the boxes are not being drawn correctly this is where you should look.
+"""
+
 
 class Labels(IntEnum):
     """
@@ -23,6 +31,8 @@ class Labels(IntEnum):
 
 # TODO: Break this down and reduce how much code lives in each function.
 # TODO: Clear up the idea of state for this class. Should it really have state?
+# TODO: Use the downsized version of the image to segment into articles \
+#       then convert to original dimensions to speed up process(less pixels to scan = faster)
 class LabeledPage:
     """
     A class to handle labeled pages and extracting their features
@@ -58,7 +68,11 @@ class LabeledPage:
                                                  interpolation=cv.INTER_AREA)
         self.original_size = original_size
 
-    def find_article_boxes(self, vert_sep: List[VerticalSeparator]) -> List[Article]:
+    def segment_single_image(self) -> List[Article]:
+        vertical_seps = self.find_all_vertical_sep()
+        return self._find_article_boxes(vertical_seps)
+
+    def _find_article_boxes(self, vert_sep: List[VerticalSeparator]) -> List[Article]:
         """
         A function to take a list of Vertical separators and identify the articles in each image.
 
