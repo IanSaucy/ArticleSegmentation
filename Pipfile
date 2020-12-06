@@ -9,6 +9,7 @@ verify_ssl = true
 numpy = ">=1.19"
 opencv-python = ">=4.4"
 tqdm = "*"
+colorama = "*"
 
 [requires]
 python_version = "3.7"

@@ -6,7 +6,7 @@ from typing import List, Tuple, Optional
 import numpy as np
 
 from extract_polygons.constants import ExpectedValues
-from extract_polygons.data_classes import Point, VerticalSeparator, HorizontalSeparator, Article, Box
+from extract_polygons.data_classes import Point, VerticalSeparator, HorizontalSeparator, Article, ImageBox
 import cv2 as cv
 
 """
@@ -58,7 +58,7 @@ class LabeledPage:
     """
     _start_end_page_buffer: int = 25
 
-    def __init__(self, img: np.array, original_size: Tuple[int, int]):
+    def __init__(self, img: np.array, original_size: Tuple[int, int], img_id: str, issue_id: str):
         self.img = img
         # Create single labeled copies of input image
         # Resize image while also reducing down to a single label
@@ -67,6 +67,17 @@ class LabeledPage:
         self._only_horizontal_labels = cv.resize(self._reduce_to_single_label(Labels.Horz), original_size,
                                                  interpolation=cv.INTER_AREA)
         self.original_size = original_size
+
+        self._image_id = img_id
+        self._issue_id = issue_id
+
+    @property
+    def image_id(self) -> str:
+        return self._image_id
+
+    @property
+    def issue_id(self) -> str:
+        return self._issue_id
 
     def segment_single_image(self) -> List[Article]:
         vertical_seps = self.find_all_vertical_sep()
@@ -105,8 +116,6 @@ class LabeledPage:
         true_most_top_point, true_most_bot_point = self._find_max_vert_sep_height(vert_sep)
         buffed_most_top_point, buffed_most_bot_point = true_most_top_point - self._start_end_page_buffer, \
                                                        true_most_bot_point + self._start_end_page_buffer
-        # most_bot_point = most_bot_point + self._start_end_page_buffer
-        # most_top_point = most_top_point - self._start_end_page_buffer
         # Add soft separator that is the start and end of the image
         vert_sep.append(VerticalSeparator(Point(true_most_top_point, 0), Point(true_most_bot_point, 0)))
         vert_sep.append(VerticalSeparator(Point(true_most_top_point, self.original_size[0]),
@@ -115,7 +124,7 @@ class LabeledPage:
         vert_sep.sort()
         img = self._only_horizontal_labels
         all_articles: List[Article] = []
-        curr_article: List[Box] = []
+        curr_article: List[ImageBox] = []
 
         # Starts from the 2nd separator in the list because we define a column
         # to be the columns between two separators. Thus we need two separators!
@@ -124,8 +133,7 @@ class LabeledPage:
             prev_sep = vert_sep[index - 1]
             # Init the top of the current box to the most top point as found previously.
             # Basically only used when starting on a new column.
-            top_of_box = Point(buffed_most_top_point, prev_sep.top_point.col), Point(buffed_most_top_point,
-                                                                                     curr_sep.top_point.col)
+            top_of_box_point = Point(buffed_most_top_point, curr_sep.top_point.col)
             # Sliding history of labels seen, used to avoid "double" counting horizontal separators
             sliding_history = []
             # Scan across all rows in identified range.
@@ -135,22 +143,20 @@ class LabeledPage:
                 if Labels.Horz in img[row,
                                   prev_sep.top_point.col:curr_sep.top_point.col] and Labels.Horz not in sliding_history:
                     # Use the current row and the column of the bottom point of the input separators
-                    temp_bot_box = Point(row, prev_sep.bottom_point.col), Point(row, curr_sep.bottom_point.col)
-                    temp_box = Box(top_of_box[0], top_of_box[1], temp_bot_box[0], temp_bot_box[1])
+                    temp_bot_right_point = Point(row, curr_sep.bottom_point.col)
+                    temp_box = ImageBox(top_of_box_point, temp_bot_right_point, img_id=self.image_id)
                     curr_article.append(temp_box)
-                    all_articles.append(Article(curr_article))
+                    all_articles.append(Article(curr_article, self.issue_id))
                     # Update running top of box for the next article
-                    top_of_box = temp_bot_box
+                    top_of_box = temp_bot_right_point
                     # Clear the current article since we're starting a new article given that we've found
                     # a horizontal separator.
                     curr_article = []
                     sliding_history.append(Labels.Horz)
                 elif row >= true_most_bot_point - 1:
                     # Finish off box since we're at the end of the current column within two seps
-                    temp_bot_box = Point(row + self._start_end_page_buffer, prev_sep.bottom_point.col), Point(
-                        row + self._start_end_page_buffer,
-                        curr_sep.bottom_point.col)
-                    temp_box = Box(top_of_box[0], top_of_box[1], temp_bot_box[0], temp_bot_box[1])
+                    temp_bot_right_point = Point(row + self._start_end_page_buffer, curr_sep.bottom_point.col)
+                    temp_box = ImageBox(top_of_box_point, temp_bot_right_point, img_id=self.image_id)
                     curr_article.append(temp_box)
                 else:
                     sliding_history.append(-1)
@@ -160,11 +166,10 @@ class LabeledPage:
 
             if index == len(vert_sep) - 1 and len(curr_article) > 0:
                 # Blindly finish off this article since we're all done on this image
-                temp_bot_box = Point(buffed_most_bot_point, prev_sep.bottom_point.col), Point(buffed_most_bot_point,
-                                                                                              curr_sep.bottom_point.col)
-                temp_box = Box(top_of_box[0], top_of_box[1], temp_bot_box[0], temp_bot_box[1])
+                temp_bot_right_point = Point(buffed_most_bot_point, curr_sep.bottom_point.col)
+                temp_box = ImageBox(top_of_box_point, temp_bot_right_point, img_id=self.image_id)
                 curr_article.append(temp_box)
-                all_articles.append(Article(curr_article))
+                all_articles.append(Article(curr_article, issue_id=self.issue_id))
         return all_articles
 
     def _find_max_vert_sep_height(self, vert_sep: List[VerticalSeparator]) -> Tuple[int, int]:
