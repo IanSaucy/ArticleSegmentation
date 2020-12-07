@@ -19,8 +19,11 @@ class ImageBox(object):
     A simple class to represent a box around some region in a specific image
     """
 
-    def __init__(self, top_left: Point, bot_right: Point, img_id: str = None, box_text: str = None):
+    def __init__(self, top_left: Point, top_right: Point, bot_left: Point, bot_right: Point, img_id: str = None,
+                 box_text: str = None):
         self._top_left = top_left
+        self._top_right = top_right
+        self._bot_left = bot_left
         self._bot_right = bot_right
         self._img_id = img_id
         self._box_text = box_text
@@ -46,6 +49,14 @@ class ImageBox(object):
         return self._top_left
 
     @property
+    def top_right(self):
+        return self._top_right
+
+    @property
+    def bot_left(self):
+        return self._bot_left
+
+    @property
     def bot_right(self):
         return self._bot_right
 
@@ -60,17 +71,19 @@ class Article(object):
     A wrapper class that contains all the boxes that designate a given article
     """
 
-    def __init__(self, boxes: List[ImageBox], issue_id: str, title: str = None, subtitle: str = None):
+    def __init__(self, boxes: List[ImageBox], issue_id: str, title: str = None, subtitle: str = None,
+                 filename: str = None):
         self._boxes = boxes or list()
         self._title = title
         self._subtitle = subtitle
         self._issue_id = issue_id
+        self._filename = filename
 
     def __str__(self):
         return f'{self.img_boxes}'
 
     def JSON(self) -> dict:
-        return {"issue_id": self.issue_id, "title": self.title, "subtitle": self.subtitle,
+        return {"filename": self.filename, "issue_id": self.issue_id, "title": self.title, "subtitle": self.subtitle,
                 "images": [img.JSON() for img in self.img_boxes]}
 
     def add_img_box(self, box: ImageBox) -> None:
@@ -82,6 +95,14 @@ class Article(object):
         Returns: None
         """
         self._boxes.append(box)
+
+    @property
+    def filename(self) -> str:
+        return self._filename
+
+    @filename.setter
+    def filename(self, name: str) -> None:
+        self._filename = name
 
     @property
     def issue_id(self):

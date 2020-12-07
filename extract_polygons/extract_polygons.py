@@ -40,6 +40,8 @@ def segment_all_images(np_file_dir: str, output_folder: str, debug=False, img_di
 
         loaded_data = np.load(str(file), allow_pickle=True)
         labels, original_size = loaded_data.item().get('labels'), loaded_data.item().get('dimensions')
+        # TODO: Fix this in ML Model part
+        original_size = original_size[1], original_size[0]
         print(file.stem)
         print(img_src_list.get(file.stem))
         articles = segment_single_image(labels, original_size, issue_id, image_id,
