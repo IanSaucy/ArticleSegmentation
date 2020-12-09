@@ -1,6 +1,8 @@
 from functools import total_ordering
 from typing import NamedTuple, List, Any
 
+import numpy as np
+
 
 @total_ordering
 class Point(NamedTuple):
@@ -20,13 +22,29 @@ class ImageBox(object):
     """
 
     def __init__(self, top_left: Point, top_right: Point, bot_left: Point, bot_right: Point, img_id: str = None,
-                 box_text: str = None):
+                 box_text: str = None, filename: str = None):
         self._top_left = top_left
         self._top_right = top_right
         self._bot_left = bot_left
         self._bot_right = bot_right
         self._img_id = img_id
         self._box_text = box_text
+        self._filename = filename
+
+    def get_contours(self) -> np.array:
+        return np.array([[[self.top_left.col, self.top_left.row]],
+                         [[self.top_right.col, self.top_right.row]],
+                         [[self.bot_right.col, self.bot_right.row]],
+                         [[self.bot_left.col, self.bot_left.row]]
+                         ])
+
+    @property
+    def filename(self) -> str:
+        return self._filename
+
+    @filename.setter
+    def filename(self, filename: str):
+        self._filename = filename
 
     @property
     def img_id(self) -> str:
@@ -62,8 +80,9 @@ class ImageBox(object):
 
     def JSON(self) -> dict:
         return {"id": self.img_id,
+                "filename": self.filename,
                 "coordinates": [self.top_left.row, self.top_left.col, self.bot_right.row, self.bot_right.col],
-                "text:": self.box_text}
+                "text": self.box_text}
 
 
 class Article(object):
@@ -71,19 +90,17 @@ class Article(object):
     A wrapper class that contains all the boxes that designate a given article
     """
 
-    def __init__(self, boxes: List[ImageBox], issue_id: str, title: str = None, subtitle: str = None,
-                 filename: str = None):
+    def __init__(self, boxes: List[ImageBox], issue_id: str, title: str = None, subtitle: str = None):
         self._boxes = boxes or list()
         self._title = title
         self._subtitle = subtitle
         self._issue_id = issue_id
-        self._filename = filename
 
     def __str__(self):
         return f'{self.img_boxes}'
 
     def JSON(self) -> dict:
-        return {"filename": self.filename, "issue_id": self.issue_id, "title": self.title, "subtitle": self.subtitle,
+        return {"issue_id": self.issue_id, "title": self.title, "subtitle": self.subtitle,
                 "images": [img.JSON() for img in self.img_boxes]}
 
     def add_img_box(self, box: ImageBox) -> None:

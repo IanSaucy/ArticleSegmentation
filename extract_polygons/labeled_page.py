@@ -59,7 +59,16 @@ class LabeledPage:
     """
     _start_end_page_buffer: int = 25
 
-    def __init__(self, img: np.array, original_size: Tuple[int, int], img_id: str, issue_id: str):
+    def __init__(self, img: np.array, original_size: Tuple[int, int], img_id: str, issue_id: str, filename_key: str):
+        """
+        Creates a LabeledPage object
+        Args:
+            img (): The source image as a np.array with labels from the ML model
+            original_size (): The original size of the picture in (width, height) format
+            img_id (): The ID of this image
+            issue_id (): The ID of the issue this image belongs to
+            filename_key (): The filename of the source image, the one that was used by the ML model to generate the labels
+        """
         self.img = img
         # Create single labeled copies of input image
         # Resize image while also reducing down to a single label
@@ -71,6 +80,15 @@ class LabeledPage:
 
         self._image_id = img_id
         self._issue_id = issue_id
+        self._filename_key = filename_key
+
+    @property
+    def filename_key(self):
+        return self._filename_key
+
+    @filename_key.setter
+    def filename_key(self, filename: str):
+        self._filename_key = filename
 
     @property
     def image_id(self) -> str:
@@ -149,7 +167,7 @@ class LabeledPage:
                     # Use the current row and the column of the bottom point of the input separators
                     temp_bot_box = Point(row, bot_box_left_col), Point(row, bot_box_right_col)
                     temp_box = ImageBox(top_of_box[0], top_of_box[1], temp_bot_box[0], temp_bot_box[1],
-                                        img_id=self.image_id)
+                                        img_id=self.image_id, filename=self.filename_key)
                     curr_article.append(temp_box)
                     all_articles.append(Article(curr_article, self.issue_id))
                     # Update running top of box for the next article
@@ -163,7 +181,7 @@ class LabeledPage:
                     temp_bot_box = Point(row + self._start_end_page_buffer, prev_sep.bottom_point.col), Point(
                         row + self._start_end_page_buffer, curr_sep.bottom_point.col)
                     temp_box = ImageBox(top_of_box[0], top_of_box[1], temp_bot_box[0], temp_bot_box[1],
-                                        img_id=self.image_id)
+                                        img_id=self.image_id, filename=self.filename_key)
                     curr_article.append(temp_box)
                 else:
                     sliding_history.append(-1)
@@ -176,7 +194,7 @@ class LabeledPage:
                 temp_bot_box = Point(buffed_most_bot_point, prev_sep.bottom_point.col), Point(buffed_most_bot_point,
                                                                                               curr_sep.bottom_point.col)
                 temp_box = ImageBox(top_of_box[0], top_of_box[1], temp_bot_box[0], temp_bot_box[1],
-                                    img_id=self.image_id)
+                                    img_id=self.image_id, filename=self.filename_key)
                 curr_article.append(temp_box)
                 all_articles.append(Article(curr_article, issue_id=self.issue_id))
         return all_articles
