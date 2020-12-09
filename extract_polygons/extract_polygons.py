@@ -12,40 +12,39 @@ from extract_polygons.data_classes import Article
 from extract_polygons.polygon_utils import random_color
 
 
-def segment_all_images(np_file_dir: str, output_folder: str, debug=False, img_dir: str = None) -> int:
-    if debug and not Path(img_dir).exists():
-        raise FileNotFoundError("Folder not found")
-    if not Path(np_file_dir).exists():
+def segment_all_images(saved_labels_dir: str, orig_img_dir: str, output_folder: str, debug=False) -> int:
+    if not Path(saved_labels_dir).exists():
         raise FileNotFoundError("Folder not found")
     if not Path(output_folder).exists():
         raise FileNotFoundError("Folder not found")
+    if not Path(orig_img_dir).exists():
+        raise FileNotFoundError("Folder not found")
 
-    numpy_file_list = list(Path(np_file_dir).glob('*.npy'))
-    img_src_list = defaultdict(str)
-    if debug:
-        # TODO: Don't static code this
-        for img in Path(img_dir).glob('*.jpg'):
-            img_src_list[img.stem] = str(img)
+    numpy_file_list = list(Path(saved_labels_dir).glob('*.npy'))
     master_article_list: List[Article] = list()
     file_skip_list: List[str] = list()
     for file in tqdm(numpy_file_list):
         try:
             issue_id, image_id = str(file.stem).split('_')
         except ValueError:
-            print(f'{Fore.LIGHTYELLOW_EX}skipped file: {str(file)}')
+            print(f'{Fore.LIGHTYELLOW_EX}\n skipped file: {str(file)}')
             print(f'could not identify issue and image ID in file name, skipping{Fore.RESET}')
-
             file_skip_list.append(str(file))
-            issue_id, image_id = None, None
+            continue
 
         loaded_data = np.load(str(file), allow_pickle=True)
-        labels, original_size = loaded_data.item().get('labels'), loaded_data.item().get('dimensions')
-        # TODO: Fix this in ML Model part
+        labels, original_size, filename = loaded_data.item().get('labels'), loaded_data.item().get(
+            'dimensions'), loaded_data.item().get('filename')
+        if labels is None or original_size is None or filename is None:
+            print(f'{Fore.RED} \n failed to load labels from file {str(file)}. Skipped.')
+            print(f'{Fore.RESET}')
+            file_skip_list.append(str(file))
+            continue
+        # Must swap around, the size is given in a tuple of (height, width)
+        # While the LabeledImage wants (width, height)
         original_size = original_size[1], original_size[0]
-        print(file.stem)
-        print(img_src_list.get(file.stem))
         articles = segment_single_image(labels, original_size, issue_id, image_id,
-                                        input_image_src=img_src_list.get(file.stem), debug=debug,
+                                        src_img_path=str(Path(orig_img_dir).joinpath(filename)), debug=debug,
                                         output_folder=output_folder)
         master_article_list.extend(articles)
 
@@ -57,35 +56,38 @@ def segment_all_images(np_file_dir: str, output_folder: str, debug=False, img_di
 
 
 def segment_single_image(input_img_array: np.array, original_size: Tuple[int, int], issue_id: str = None,
-                         img_id: str = None, input_image_src: str = None,
+                         img_id: str = None, src_img_path: str = None,
                          debug=False, output_folder: str = None) \
         -> List[Article]:
     if debug:
-        if not Path(input_image_src).exists():
+        if not Path(src_img_path).exists():
             raise FileNotFoundError
         if not Path(output_folder).exists():
             raise FileNotFoundError
 
-    page = LabeledPage(input_img_array, original_size, img_id, issue_id)
+    page = LabeledPage(input_img_array, original_size, img_id, issue_id, str(Path(src_img_path).name))
     # Takes a bit to run
     articles = page.segment_single_image()
     if debug:
         try:
-            annotate_image(input_image_src, articles, output_folder)
+            annotate_image(src_img_path, articles, output_folder)
         except Exception:
             print(
-                f'{Fore.LIGHTYELLOW_EX} Failed to load source image for annotation. '
-                f'\n Annotated image not saved.{Fore.RESET}')
+                f'{Fore.LIGHTYELLOW_EX}\nFailed to load source image for annotation. '
+                f'\n Annotated image not saved. \n IMG: {src_img_path} {Fore.RESET}')
     return articles
 
 
 def annotate_image(input_img_scr: str, articles: List[Article], output_folder: str) -> None:
-    print(input_img_scr)
     source_img = cv.imread(input_img_scr)
     source_img_name = Path(input_img_scr).stem
     for index, article in enumerate(articles):
         color = random_color()
         for box in article.img_boxes:
-            cv.rectangle(source_img, (box.top_left.col, box.top_left.row), (box.bot_right.col, box.bot_right.row),
-                         color, 5)
+            # Inspired by the following:
+            # https://gist.github.com/jdhao/1cb4c8f6561fbdb87859ac28a84b0201
+            rect = cv.minAreaRect(box.get_contours())
+            box = cv.boxPoints(rect)
+            box = np.int0(box)
+            cv.drawContours(source_img, [box], 0, color, 5)
     cv.imwrite(str(Path(output_folder).joinpath(f'{source_img_name}_annotated.jpg')), source_img)
