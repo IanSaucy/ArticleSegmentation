@@ -50,7 +50,7 @@ def segment_all_images(np_file_dir: str, output_folder: str, debug=False, img_di
         master_article_list.extend(articles)
 
     # Dump data to json
-    with open('data.json', 'w') as outfile:
+    with open(Path(output_folder).joinpath('data.json'), 'w') as outfile:
         json.dump([val.JSON() for val in master_article_list], outfile)
 
     return len(master_article_list)
@@ -71,7 +71,7 @@ def segment_single_image(input_img_array: np.array, original_size: Tuple[int, in
     articles = page.segment_single_image()
     if debug:
         try:
-            annotate_image(input_image_src, articles)
+            annotate_image(input_image_src, articles, output_folder)
         except Exception:
             print(
                 f'{Fore.LIGHTYELLOW_EX} Failed to load source image for annotation. '
@@ -79,7 +79,7 @@ def segment_single_image(input_img_array: np.array, original_size: Tuple[int, in
     return articles
 
 
-def annotate_image(input_img_scr: str, articles: List[Article]) -> None:
+def annotate_image(input_img_scr: str, articles: List[Article], output_folder: str) -> None:
     print(input_img_scr)
     source_img = cv.imread(input_img_scr)
     source_img_name = Path(input_img_scr).stem
@@ -88,4 +88,4 @@ def annotate_image(input_img_scr: str, articles: List[Article]) -> None:
         for box in article.img_boxes:
             cv.rectangle(source_img, (box.top_left.col, box.top_left.row), (box.bot_right.col, box.bot_right.row),
                          color, 5)
-    cv.imwrite(f'{source_img_name}_annotated.jpg', source_img)
+    cv.imwrite(str(Path(output_folder).joinpath(f'{source_img_name}_annotated.jpg')), source_img)
