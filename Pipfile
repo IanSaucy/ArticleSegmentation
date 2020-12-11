@@ -8,8 +8,16 @@ verify_ssl = true
 [packages]
 numpy = ">=1.19"
 opencv-python = ">=4.4"
-tqdm = "*"
-colorama = "*"
+tensorflow = "==1.15.2"
+# Used by tensorflow and due to the following:
+# https://github.com/tensorflow/tensorflow/issues/44467
+h5py = "<3.0.0"
+tqdm = ">=4.5"
+keras = "~=2.3.1"
+segmentation-models = "~=1.0.1"
+colorama = ">=0.4.4"
+pillow = "~=8.0.1"
+pytesseract = "*"
 
 [requires]
 python_version = "3.7"
