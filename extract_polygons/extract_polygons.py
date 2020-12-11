@@ -50,6 +50,7 @@ def segment_all_images(saved_labels_dir: str, orig_img_dir: str, output_folder: 
 
     # Dump data to json
     with open(Path(output_folder).joinpath('data.json'), 'w') as outfile:
+        print('Opening JSON file at: ' + str(Path(output_folder).joinpath('data.json')))
         json.dump([val.JSON() for val in master_article_list], outfile)
 
     return len(master_article_list)
