@@ -1,9 +1,26 @@
+from typing import List, NamedTuple, Optional
+
 import requests
 import json
 
 
+class Record(NamedTuple):
+    issue_id: str
+    created_at: str
+    modified_at: str
+    record_date: str
+
+
+class Image(NamedTuple):
+    issue: Record
+    image_id: str
+    height: int
+    width: int
+
+
 class JSONRecords:
     MAX_RETRY_COUNT = 5
+
     def __init__(self, url: str):
         self._url = url
 
@@ -22,7 +39,7 @@ class JSONRecords:
             retry_count += 1
         return response
 
-    def get_all_records(self):
+    def get_all_records(self) -> List[Record]:
         '''
         Gets all records from api. Returns a list of issue ids
         :return: issue ids
@@ -47,7 +64,7 @@ class JSONRecords:
                 raise ValueError('Could not find last_page object in HTTP response')
             # Process each individual doc ID
             for doc in json_data.get('response').get('docs', []):
-                yield doc['id']
+                yield Record(doc['id'], doc['system_create_dtsi'], doc['system_modified_dtsi'], doc['date_start_dtsi'])
             # Results are paginated from the API, we need to iterate over them until
             # the last page indicator
             if not json_data.get('response').get('pages').get('last_page?'):

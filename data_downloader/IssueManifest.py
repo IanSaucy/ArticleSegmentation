@@ -2,6 +2,8 @@ from typing import List, Tuple
 
 import requests
 
+from JSONRecords import Record, Image
+
 
 class IssueManifest:
     REQUEST_URL = 'https://www.digitalcommonwealth.org/search/'
@@ -28,16 +30,16 @@ class IssueManifest:
             raise requests.HTTPError(str(response.status_code) + ' url: ' + response.url)
         return response
 
-    def get_all_manifests(self, issue_ids: List[str]) -> List[Tuple[str, str]]:
+    def get_all_manifests(self, issues: List[Record]) -> List[Image]:
         '''
         Finds all issue manifests for the given list of issue ids
-        :param issue_ids:
-        :type issue_ids:
+        :param issues: List of issues
+        :type issues:
         :return:
         :rtype:
         '''
-        for issue in issue_ids:
-            response = self._get_manifest(issue)
+        for issue in issues:
+            response = self._get_manifest(issue.issue_id)
             json_data = response.json()
             if json_data.get('sequences') is None:
                 raise ValueError('Could not find sequences object on HTTP response')
@@ -47,5 +49,8 @@ class IssueManifest:
                 raise ValueError('Could not find canvases object in HTTP response')
             for canvas in canvases:
                 image_canvas_url = canvas.get('images')[0].get('resource').get('service').get('@id')
+                width = int(canvas.get('images')[0].get('resource').get('width'))
+                height = int(canvas.get('images')[0].get('resource').get('height'))
                 url_parts = image_canvas_url.split('/')
-                yield issue, url_parts[-1]
+                image_id = url_parts[-1]
+                yield Image(issue, image_id, height, width)
