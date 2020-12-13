@@ -21,14 +21,14 @@ Output: JSON file with:
 """
 
 ### IMPORT STATEMENTS ###
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict
 import pytesseract
 import subprocess
 from PIL import Image
-import argparse
 from pathlib import Path
 import os
 import json
+from tqdm import tqdm
 
 ### HELPER FUNCTIONS/CLASSES ###
 
@@ -214,7 +214,7 @@ def image_to_article_OCR(json_path: str, output_directory: str, image_directory:
         full_json_path = Path(output_directory).joinpath(output_json_filename)
         output_file = open(full_json_path, "w")
 
-        for i in range(len(issues)):
+        for i in tqdm(range(len(issues))):
             # List of images to run OCR on
             article = issues[i]
             images = article['images']
