@@ -164,6 +164,7 @@ data_downloader/.DS_Store
 
 # Just ignore all intellij stuff, does not belong in github
 .idea/*
+*/.idea/*
 
 # User-specific stuff
 .idea/**/workspace.xml

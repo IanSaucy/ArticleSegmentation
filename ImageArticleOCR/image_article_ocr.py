@@ -42,7 +42,16 @@ output_json_filename = 'article_ocr.json'
 
 ### OCR wrapper ###
 
-def use_ocr(image: Image, ocr_type: str) -> str:    
+def use_ocr(image: Image, ocr_type: str) -> str:  
+    """This function lets the user use the OCR of their choice to be run on the PIL Image object
+
+    Args:
+        image (Image): a PIL Image object
+        ocr_type (str): the type of ocr you are using
+
+    Returns:
+        str: the output from running the OCR on the PIL image
+    """      
 
     output = ''
 
@@ -65,6 +74,14 @@ def use_ocr(image: Image, ocr_type: str) -> str:
 ### TESSERACT OCR ###
 
 def use_tesseract_img(image: Image) -> str:
+    """specifically uses Tesseract OCR to extract text from a PIL Image object
+
+    Args:
+        image (Image): PIL Image object to run OCR on
+
+    Returns:
+        str: The output of the OCR on the PIL Image
+    """
 
     # Run OCR
     text = pytesseract.image_to_string(image)
@@ -74,6 +91,15 @@ def use_tesseract_img(image: Image) -> str:
 ### ABBYY OCR ###
 
 def use_abbyy(image_path: str, output_path: str) -> str:
+    """specifically uses ABBYY OCR to extract text from a PIL Image object
+
+    Args:
+        image_path (str): the path to the image you want to run OCR on
+        output_path (str): the path to save the output file to of the OCR result
+
+    Returns:
+        str: The result of running OCR on the PIL Image object
+    """
 
     pythonExecutable = 'python'
     pythonProgPath = Path.joinpath(abbyy_dir_path, '/process.py')
@@ -96,6 +122,14 @@ def use_abbyy(image_path: str, output_path: str) -> str:
 ### OTHER FUNCTIONS ###
 
 def unpack_json(json_path) -> Dict[str,str]:   
+    """Gets the content of the JSON file if it is able to be opened
+
+    Args:
+        json_path ([type]): The path to the JSON file to unpack
+
+    Returns:
+        Dict[str,str]: A dictionary object of all the contents of the JSON file
+    """
 
     try:
         with open(json_path) as f:
@@ -107,6 +141,14 @@ def unpack_json(json_path) -> Dict[str,str]:
     return {}
 
 def valid_crop(rectangle: Tuple[int,int,int,int]) -> bool:
+    """Figures out if the Tuple of 4 integers are a valid cropping to pass into PIL.Image.crop()
+
+    Args:
+        rectangle (Tuple[int,int,int,int]): A tuple of coordinates of the format (left, top, right, bottom)
+
+    Returns:
+        bool: Whether or not the Tuple is a valid cropping or not
+    """
     is_tuple_of_four = left_top_right_bottom = False
 
     is_tuple_of_four = (isinstance(rectangle, tuple) and len(rectangle) == 4)
@@ -120,22 +162,41 @@ def valid_crop(rectangle: Tuple[int,int,int,int]) -> bool:
     return is_tuple_of_four and left_top_right_bottom
 
 def path_leaf(path) -> str:
+    """Extracts the filename and the file extension from a path
+
+    Args:
+        path ([type]): Path string to a location
+
+    Returns:
+        str: The filename and file extension if this is a file
+    """
     import ntpath
     head, tail = ntpath.split(path)
     return tail or ntpath.basename(head)
 
 def get_filename(path) -> str:
+    """Gets only the filename from a path to a file
+
+    Args:
+        path ([type]): Path string to a file
+
+    Returns:
+        str: The filename without the file extension
+    """
     return os.path.splitext(path_leaf(path))[0]
 
 ### KEY FUNCTIONS ###
 
 # Call this function to handle everything
-# TODO: Check how it works with Eben's format "data.json"
 def image_to_article_OCR(json_path: str, output_directory: str, image_directory: str, ocr_to_use: str) -> None:
-    """
-        Input: A JSON file with the above specified variables
-        Output: A JSON file of the same variables PLUS the blocks of text outputted from OCR on the bounding boxes of the images
-    """
+    """Given images from the \'data.json\' file from the polygon extraction pipeline, will crop the image by the bounding boxes specified, and run OCR on each individual article then save the results into a \'article_ocr.json\' file
+
+    Args:
+        json_path (str): A JSON file with metadata on images, bounding boxes, etc.
+        output_directory (str): Where to save the output JSON to
+        image_directory (str): The directory to all the images you will be running OCR on. This will be combined with the filenames contained in the JSON file
+        ocr_to_use (str): The type of OCR to use on the images
+    """    
     issues = unpack_json(json_path)
     
     output_file_err_list_path = Path(output_directory).joinpath('article_ocr_error.csv')
@@ -149,6 +210,9 @@ def image_to_article_OCR(json_path: str, output_directory: str, image_directory:
         if(not Path(output_directory).exists()):
             print('Output Directory doesn\'t exist! Exiting...')
             return
+
+        full_json_path = Path(output_directory).joinpath(output_json_filename)
+        output_file = open(full_json_path, "w")
 
         for i in range(len(issues)):
             # List of images to run OCR on
@@ -185,17 +249,14 @@ def image_to_article_OCR(json_path: str, output_directory: str, image_directory:
                     try:
                         ocr_output = article_to_OCR(original_image, polygons_, ocr_to_use)
                     except:
-                        print(f'error in OCR for image: {image_path}')
                         image_err_list.append(image_path)
 
                     image['text'] = ocr_output
-
+                
                 else:
-                    image_err_list.append(image_path)
-                    print('Failed to open the image: \'' + str(image_path) + '\'! Skipping...')
-
-        with open(Path(output_directory).joinpath(output_json_filename), 'w') as output_file:
-            json.dump(issues, output_file, indent=4, separators=(',', ': '))
+                    print('Failed to open the image: \'' + str(image_path) + '\'! Skipping...')                       
+    
+        json.dump(issues, output_file, indent=4, separators=(',', ': '))
 
         # Write into error list
         with open(output_file_err_list_path, 'w') as file:
@@ -203,18 +264,21 @@ def image_to_article_OCR(json_path: str, output_directory: str, image_directory:
                 file.write(f'{line}\n')
 
 def article_to_OCR(newspaper_image: Image, polygon: Tuple[int,int,int,int], ocr_to_use) -> str:
-    """
-        Input: A single article (List of bounding boxes) to run OCR on
-        Output: List of text that is the OCR result from each article/bounding box
+    """Runs the OCR after cropping the PIL.Image by the bounding boxes
 
-        NOTE: polygons will be in the form:
-                {
-                    'X1': int,
-                    'Y1': int,
-                    'X2': int,
-                    'Y2': int
-                }
-    """
+    Args:
+        newspaper_image (Image): The full image of the newspaper 
+        polygon (Tuple[int,int,int,int]): The bounding box to crop the newspaper by to later run OCR on (left, top, right, bottom)
+        ocr_to_use ([type]): The type of OCR to use
+
+    Raises:
+        Exception: Bounding box error, where the Tuple was not a valid cropping
+        Exception: Cropping Error, where the program failed to crop the image by the bounding box specified
+        Exception: OCR failure, when the OCR fails to run on the image
+
+    Returns:
+        str: The OCR output on the cropped PIL.Image
+    """    
 
     # Should be (Left, Top, Right, Bottom)
     bounding_box = polygon
