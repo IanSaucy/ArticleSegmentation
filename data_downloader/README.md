@@ -17,6 +17,14 @@ This part is in the aptly named `scrape_urls_driver.py` file. Just call it via p
 and it will do the rest. It overwrites the output file each time and thus has to re-scrape
 all the URLs on each run.
 
+It also saves some useful metadata about each image. Including: 
+
+- Height
+- Width
+- issue date
+- creation date(time uploaded online)
+- updated date
+
 ## Scraping Images
 
 This part can be run via `python image_downloader_driver.py`. It expects the CSV file

@@ -17,7 +17,7 @@ keras = "~=2.3.1"
 segmentation-models = "~=1.0.1"
 colorama = ">=0.4.4"
 pillow = "~=8.0.1"
-pytesseract = "*"
+pytesseract = "0.3.6"
 
 [requires]
 python_version = "3.7"

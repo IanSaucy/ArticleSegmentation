@@ -1,8 +1,11 @@
 from functools import total_ordering
-from typing import NamedTuple, List, Any
+from typing import NamedTuple, List
 
 import numpy as np
 
+
+# TODO: Move these into another location as they would be useful in more than one
+#   module of this program.
 
 @total_ordering
 class Point(NamedTuple):

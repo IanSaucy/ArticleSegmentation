@@ -1,5 +1,4 @@
 import json
-from collections import defaultdict
 from pathlib import Path
 from typing import List, Tuple
 from tqdm import tqdm
@@ -12,7 +11,19 @@ from extract_polygons.data_classes import Article
 from extract_polygons.polygon_utils import random_color
 
 
-def segment_all_images(saved_labels_dir: str, orig_img_dir: str, output_folder: str, debug=False) -> int:
+def segment_all_images(saved_labels_dir: str, orig_img_dir: str, output_folder: str, json_file_name: str, debug=False) -> int:
+    """
+    Top Level function to handle running the segmentation code against a folder of images.
+    Args:
+        saved_labels_dir (): The location of the .npy files
+        orig_img_dir (): The location of original images that correspond to the .npy file
+        output_folder (): The folder of where to save output files(can be same as input)
+        debug (): Enables debug mode
+
+    Returns:
+        The number of articles identified
+
+    """
     if not Path(saved_labels_dir).exists():
         raise FileNotFoundError("Folder not found")
     if not Path(output_folder).exists():
@@ -49,8 +60,8 @@ def segment_all_images(saved_labels_dir: str, orig_img_dir: str, output_folder: 
         master_article_list.extend(articles)
 
     # Dump data to json
-    with open(Path(output_folder).joinpath('data.json'), 'w') as outfile:
-        print('Opening JSON file at: ' + str(Path(output_folder).joinpath('data.json')))
+    with open(Path(output_folder).joinpath(json_file_name), 'w') as outfile:
+        print('Opening JSON file at: ' + str(Path(output_folder).joinpath(json_file_name)))
         json.dump([val.JSON() for val in master_article_list], outfile)
 
     return len(master_article_list)
@@ -60,6 +71,22 @@ def segment_single_image(input_img_array: np.array, original_size: Tuple[int, in
                          img_id: str = None, src_img_path: str = None,
                          debug=False, output_folder: str = None) \
         -> List[Article]:
+    """
+    Top level function to segment a single image
+    Args:
+        input_img_array (): The numpy array loaded from .npy file that contains labels from the ML model
+        original_size (): The original image size, in the form of (height, width)
+        issue_id (): The ID for this issue
+        img_id (): The ID of this image
+        src_img_path (): The path to where the original image is stored
+        debug (): Enable debug mode
+        output_folder (): Folder to save output files/
+
+    Returns:
+
+        The list of identified articles.
+
+    """
     if debug:
         if not Path(src_img_path).exists():
             raise FileNotFoundError
@@ -80,6 +107,17 @@ def segment_single_image(input_img_array: np.array, original_size: Tuple[int, in
 
 
 def annotate_image(input_img_scr: str, articles: List[Article], output_folder: str) -> None:
+    """
+    This function is used for debugging. It annotates an image with colored boxes used to represent
+    identified regions of articles on the image.
+    Args:
+        input_img_scr (): Path to the original image
+        articles (): List of articles to draw on image
+        output_folder (): Location of where to save annotated image
+
+    Returns: Nothing
+
+    """
     source_img = cv.imread(input_img_scr)
     source_img_name = Path(input_img_scr).stem
     for index, article in enumerate(articles):

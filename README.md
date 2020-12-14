@@ -1,3 +1,18 @@
+# Grader Note
+You might find this google drive link useful. It contains a terrible jupyter notebook and our presentation. 
+
+**It also has the PDF that analysis the accuracy of our model**
+
+[Folder](https://drive.google.com/drive/u/1/folders/13D8uShWSfLllCUA1lYtNI8m-UihWi00_)
+
+## Dataset location
+
+The location and description of our dataset is described below. It is also stored on the SCC:
+
+> `/restricted/projectnb/cs501t2/ian_thomas/LiberatorProject/CS501-Liberator-Project/data_downloader/output_images`
+
+
+
 # 1. Table Of Contents
 - [1. Table Of Contents](#1-table-of-contents)
 - [2. Newspaper Article Segmentation](#2-newspaper-article-segmentation)
@@ -28,10 +43,15 @@
     - [10.2.1. Speed Considerations](#1021-speed-considerations)
   - [10.3. Deep Dive: Content Extraction(OCR)](#103-deep-dive-content-extractionocr)
 - [11. Dataset and Sample Results](#11-dataset-and-sample-results)
-  - [11.1. Complete Dataset](#111-complete-dataset)
-  - [11.2. Sample Dataset & Results](#112-sample-dataset--results)
+  - [11.1. Example Data](#111-example-data)
+  - [11.2. Scraping Tool](#112-scraping-tool)
+  - [11.3. Complete Dataset](#113-complete-dataset)
+  - [11.4. Sample Dataset & Results](#114-sample-dataset--results)
 - [12. Alternative Methods Tried](#12-alternative-methods-tried)
 - [13. Extra Resources](#13-extra-resources)
+  - [13.1. EDA](#131-eda)
+  - [13.2. Other Tools](#132-other-tools)
+  - [13.3. Research Papers](#133-research-papers)
 
 # 2. Newspaper Article Segmentation
 
@@ -327,7 +347,19 @@ We provide links to all data utilizes for this project. Specific resources are b
 
 [Folder with Data](https://drive.google.com/drive/folders/1Kc9K_lCCHqfHi-FopoN5oqzfAp515Ghz?usp=sharing)
 
-## 11.1. Complete Dataset
+## 11.1. Example Data
+
+Example data is provided in the following two folders, it contains the full output from the entire pipeline for a single image.
+
+[Example Input Data](example_data/)
+
+[Example Output Data](example_data_out)
+
+## 11.2. Scraping Tool
+
+We provide a tool to scrape the digital commonwealth website for all images in this dataset. It can be found in the `data_downloader` folder. It contains it's own readme and install instructions.
+
+## 11.3. Complete Dataset
 The complete dataset can be downloaded from Google Drive here, or re-scraped using the `data_downloader` tool if the latest data is required. One could also jump-start the scraping by downloading our archived dataset and re-running the data-downloader which will only download images not in the dataset. 
 
 [Complete Dataset](https://drive.google.com/file/d/1xbcfguni-1j0uRPfVBPlSILDU8dmXATa/view?usp=sharing)
@@ -335,13 +367,13 @@ The complete dataset can be downloaded from Google Drive here, or re-scraped usi
 [CSV with image links and metadata](https://drive.google.com/file/d/1L5IBr9tGysHQLx0vEGDimnS3MJ8ghISz/view?usp=sharing)
 
 
-## 11.2. Sample Dataset & Results
+## 11.4. Sample Dataset & Results
 
 We also provide the sample dataset which contains 25 issues comprised of 100 images. This is our test data and contains annotations for the number of ground-truth articles per issue. It also contains the output from the current version of the model, including debug data(annotated images etc), article segmentation and OCR results. 
 
 [Sample Images Only](https://drive.google.com/file/d/1b4zuJ2yr3--shQJOBFIXbufSlJL4pelN/view?usp=sharing)
 
-[Sample Images w/Output at each step]()
+[Sample Images w/Output at each step](https://drive.google.com/file/d/1ivtxQFWIizx6BZVcH3PE4KK46TJjvfeS/view?usp=sharing)
 
 
 
@@ -351,6 +383,16 @@ We also provide the sample dataset which contains 25 issues comprised of 100 ima
  We briefly explored other methods for accomplishing this task, mainly AWS Textract. Although textract tends to do very well with structured data, we did not see a good performance on our dataset. About the only thing it could infer was *rough* column/row data. These divisions often did not indicate the actual location of columns/rows and did not do as good of a job as the model we utilized. 
 
  # 13. Extra Resources
+
+ ## 13.1. EDA
+
+ Some of our EDA work lives in [EDA](EDA/). May or may not be useful for future work.
+
+ ## 13.2. Other Tools
+
+ [Origami](https://github.com/poke1024/origami) is a tool that is built upon the same model we used(built by the same researcher) that attempts to solve a very similar problem. Results look promising from this tool but we where unable to get it to run on our systems. In code documentation is a bit lacking as well. 
+
+## 13.3. Research Papers
 
  Here we provide a list of extra resources that anyone else working on this project might find helpful. 
 

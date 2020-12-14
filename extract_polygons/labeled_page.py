@@ -34,6 +34,7 @@ class Labels(IntEnum):
 # TODO: Clear up the idea of state for this class. Should it really have state?
 # TODO: Use the downsized version of the image to segment into articles \
 #       then convert to original dimensions to speed up process(less pixels to scan = faster)
+# TODO: Separate this into multiple files, it has gotten much too big.
 class LabeledPage:
     """
     A class to handle labeled pages and extracting their features
@@ -221,7 +222,8 @@ class LabeledPage:
         x1 = (-separator.top_point.row + row + slope * separator.top_point.col) / slope
         return math.floor(x1)
 
-    def _find_max_vert_sep_height(self, vert_sep: List[VerticalSeparator]) -> Tuple[int, int]:
+    @staticmethod
+    def _find_max_vert_sep_height(vert_sep: List[VerticalSeparator]) -> Tuple[int, int]:
         """
         Takes a list of vertical separators and finds the the (row,col) point for both extremes, both "highest" and "lowest"
         "highest" and "lowest" is a bit of a confusing term here given that a separator that is "higher" physically on an image
@@ -430,7 +432,8 @@ class LabeledPage:
                 temp_img[temp_img == label] = 0
         return temp_img
 
-    def _find_number_vert_sep(self, input_image: np.array) -> int:
+    @staticmethod
+    def _find_number_vert_sep(input_image: np.array) -> int:
         """
         Takes the image and finds the number of vertical separators. Searches multiple
         places in the image to ideally come up with the "true" number of vertical separators.
