@@ -12,7 +12,6 @@ The location and description of our dataset is described below. It is also store
 > `/restricted/projectnb/cs501t2/ian_thomas/LiberatorProject/CS501-Liberator-Project/data_downloader/output_images`
 
 
-
 # 1. Table Of Contents
 - [1. Table Of Contents](#1-table-of-contents)
 - [2. Newspaper Article Segmentation](#2-newspaper-article-segmentation)
@@ -29,29 +28,30 @@ The location and description of our dataset is described below. It is also store
   - [6.5. Pre-trained Model](#65-pre-trained-model)
   - [6.6. Tesseract](#66-tesseract)
   - [6.7. libGL](#67-libgl)
-- [7. Input File Requirements](#7-input-file-requirements)
-  - [7.1. Quick Overview](#71-quick-overview)
-  - [7.2. In depth Input Image Requirements](#72-in-depth-input-image-requirements)
-- [8. Command Line Interface](#8-command-line-interface)
-  - [8.1. Individual Pipeline](#81-individual-pipeline)
-- [9. Pipeline Architecture](#9-pipeline-architecture)
-- [10. Deep Dive Into The Pipeline](#10-deep-dive-into-the-pipeline)
-  - [10.1. Deep Dive: ML Model, Image Labeling](#101-deep-dive-ml-model-image-labeling)
-    - [10.1.1. Model Overview](#1011-model-overview)
-    - [10.1.2. End-To-End Model Function](#1012-end-to-end-model-function)
-  - [10.2. Deep Dive: Article Segmentation](#102-deep-dive-article-segmentation)
-    - [10.2.1. Speed Considerations](#1021-speed-considerations)
-  - [10.3. Deep Dive: Content Extraction(OCR)](#103-deep-dive-content-extractionocr)
-- [11. Dataset and Sample Results](#11-dataset-and-sample-results)
-  - [11.1. Example Data](#111-example-data)
-  - [11.2. Scraping Tool](#112-scraping-tool)
-  - [11.3. Complete Dataset](#113-complete-dataset)
-  - [11.4. Sample Dataset & Results](#114-sample-dataset--results)
-- [12. Alternative Methods Tried](#12-alternative-methods-tried)
-- [13. Extra Resources](#13-extra-resources)
-  - [13.1. EDA](#131-eda)
-  - [13.2. Other Tools](#132-other-tools)
-  - [13.3. Research Papers](#133-research-papers)
+- [7. Known Bugs](#7-known-bugs)
+- [8. Input File Requirements](#8-input-file-requirements)
+  - [8.1. Quick Overview](#81-quick-overview)
+  - [8.2. In depth Input Image Requirements](#82-in-depth-input-image-requirements)
+- [9. Command Line Interface](#9-command-line-interface)
+  - [9.1. Individual Pipeline](#91-individual-pipeline)
+- [10. Pipeline Architecture](#10-pipeline-architecture)
+- [11. Deep Dive Into The Pipeline](#11-deep-dive-into-the-pipeline)
+  - [11.1. Deep Dive: ML Model, Image Labeling](#111-deep-dive-ml-model-image-labeling)
+    - [11.1.1. Model Overview](#1111-model-overview)
+    - [11.1.2. End-To-End Model Function](#1112-end-to-end-model-function)
+  - [11.2. Deep Dive: Article Segmentation](#112-deep-dive-article-segmentation)
+    - [11.2.1. Speed Considerations](#1121-speed-considerations)
+  - [11.3. Deep Dive: Content Extraction(OCR)](#113-deep-dive-content-extractionocr)
+- [12. Dataset and Sample Results](#12-dataset-and-sample-results)
+  - [12.1. Example Data](#121-example-data)
+  - [12.2. Scraping Tool](#122-scraping-tool)
+  - [12.3. Complete Dataset](#123-complete-dataset)
+  - [12.4. Sample Dataset & Results](#124-sample-dataset--results)
+- [13. Alternative Methods Tried](#13-alternative-methods-tried)
+- [14. Extra Resources](#14-extra-resources)
+  - [14.1. EDA](#141-eda)
+  - [14.2. Other Tools](#142-other-tools)
+  - [14.3. Research Papers](#143-research-papers)
 
 # 2. Newspaper Article Segmentation
 
@@ -169,18 +169,20 @@ Most unix systems require libGL for opencv, for Ubuntu:
 
 > `sudo apt-get install libgl1-mesa-glx`
 
+# 7. Known Bugs
+
+Happily this section is quite short! The main bug we have noticed seems to be connected to the old version of tensorflow that is required to run the ML model. At least on the Shared Computing Cluster(the only GPU we have access to) we could not get GPU accelerated labeling to work. So for right now **the model can only be run on a CPU**.
 
 
-
-# 7. Input File Requirements
+# 8. Input File Requirements
 
 Although this pipeline has been designed with next steps in mind it has been designed with the Liberator Dataset specifically, thus there are certain expectations for the input files, their naming format etc. 
 
-## 7.1. Quick Overview
+## 8.1. Quick Overview
 
 Input images must be JPGs of at least `2400,1200`(height, width). They must be named with the following convention: `issueid_imageid.jpg`
 
-## 7.2. In depth Input Image Requirements
+## 8.2. In depth Input Image Requirements
 
 A given image in the Liberator dataset contains to key pieces of information: 
  * issue ID
@@ -200,7 +202,7 @@ In theory, the pipeline supports other file extensions, but for right now we're 
 Lastly, the input size must be at least `2400x1200` height, width. This is a soft lower limit that we have set for this version of the pipeline. It could possibly be changed in the future.
 
 
-# 8. Command Line Interface
+# 9. Command Line Interface
 
 As mentioned previously, the `main.py` is the overall wrapper for this program!
 Ensure you have started the Pipenv environment with Python 3.7 and installed all dependencies PLUS installed external dependencies such as Tesseract, and the Model.
@@ -231,7 +233,7 @@ python main.py "./image_directory" "jpg" "<full_path>/output_directory" "./model
 
 In the above command I had the directories `image_directory` and `model` in the same directory `main.py` was contained in. Regardless of where the `output_directory` directory is, you want to put in the full path to that directory. Finally, I wrote the required `-t` flag, and used the full path of where my tesseract executable is.
 
-## 8.1. Individual Pipeline
+## 9.1. Individual Pipeline
 
 As of right now we have not included in the command line interface the ability to run an individual stage of the pipeline. A work around to this is to go into `main.py` file and comment out pipelines you don't want to run in the `main()` method! Example Below:
 
@@ -270,7 +272,7 @@ json_path = os.path.join(args['output_directory'], JSON_NAME)
 image_to_article_OCR(json_path, args['output_directory'], args['image_directory'], "tesseract")
 ```
 
-# 9. Pipeline Architecture
+# 10. Pipeline Architecture
 
 The pipeline was designed in such a manner that enables independent development of each part and or addition of new steps. Given that the output data from each step is saved sub-sections of the pipeline can be re-run without necessitating the re-run of the entire pipeline. 
 
@@ -279,11 +281,11 @@ For example, if one wanted to improve the article region detection algorithm(tha
 Outside of the first step, the ML model that labels images, the common exchange format between each step is the JSON file containing the detected information about the articles/issues. If a need feature is desired to be added the author should try as much as possible to continue this design choice. A new "step" in the pipeline should read the input from the previous steps and then perform the new operations, outputting a **new** `JSON` file for use by the next step of the pipeline. Always preserving both it's input and output.
 
 
-# 10. Deep Dive Into The Pipeline
+# 11. Deep Dive Into The Pipeline
 
 Here we hope to take a deep dive into each component of the pipeline, talk about the code a bit more specifically and provide insights into choices that where made and possible room for improvement.
 
-## 10.1. Deep Dive: ML Model, Image Labeling
+## 11.1. Deep Dive: ML Model, Image Labeling
 
 // TODO: Update the name
 
@@ -291,7 +293,7 @@ This part of the code handles the labeling of images using the DNN model. This m
 
 The original work can be found at [this github repository](https://github.com/poke1024/bbz-segment) and [published in this paper](https://arxiv.org/abs/2004.07317).
 
-### 10.1.1. Model Overview
+### 11.1.1. Model Overview
 
 The model is actually comprised of two distinct parts, which are called `sep` and `blkx` in the original repository and academic paper. The first one `sep` attempts to segment a given image into the following components: background, horizontal separator, vertical separator, and table separators. The 2nd, `blkx` attempts to classify regions of the image into one of the following categories: background, text, tabular data, illustrations. 
 
@@ -302,7 +304,7 @@ In both types of models, the model performs a pixel level labeling of the image.
 For more in depth information it would be useful to read the above linked paper.
 
 
-### 10.1.2. End-To-End Model Function
+### 11.1.2. End-To-End Model Function
 
 This section describes the general overview of how an image is taken from it's original input and passed through the ML model, finally outputting the pixel level labels.
 
@@ -321,7 +323,7 @@ If a debug parameter was passed the following is also saved:
 
 This information is then saved for the next part of the pipeline. 
 
-## 10.2. Deep Dive: Article Segmentation
+## 11.2. Deep Dive: Article Segmentation
 
 This step of the pipeline attempts to utilize the data from the previous step to create a set of polygons that represent the detected article regions of the input image. There is done via a simple rule based algorithm. It is exclusively utilizes the detected horizontal and vertical separators to make these detections.
 
@@ -331,23 +333,23 @@ This step also outputs a debug image, if specified at invocation. This image con
 
 **Check the to-do list for current issues with this step**
 
-### 10.2.1. Speed Considerations
+### 11.2.1. Speed Considerations
 
 Despite the reasonably simplistic nature of this step it takes a considerable amount of time to run. Typically about 30-45s per image. No attempt to improve this speed has been attempted, the easiest would be to process multiple images in parallel, but there does exist opportunities for improving the speed of the pipeline.
 
-## 10.3. Deep Dive: Content Extraction(OCR)
+## 11.3. Deep Dive: Content Extraction(OCR)
 
 This step of the pipeline takes as input the partially filed JSON file from the previous step and uses the detected article regions and performs OCR, filling the JSON file with the detected text. 
 
 Currently this module uses `tesseract-ocr` with default settings to perform this detection of text. In addition, no attempt at detecting keywords, authors, article titles etc. is made. 
 
-# 11. Dataset and Sample Results
+# 12. Dataset and Sample Results
 
 We provide links to all data utilizes for this project. Specific resources are broken out below but here is the link to the entire Google Drive folder:
 
 [Folder with Data](https://drive.google.com/drive/folders/1Kc9K_lCCHqfHi-FopoN5oqzfAp515Ghz?usp=sharing)
 
-## 11.1. Example Data
+## 12.1. Example Data
 
 Example data is provided in the following two folders, it contains the full output from the entire pipeline for a single image.
 
@@ -355,11 +357,11 @@ Example data is provided in the following two folders, it contains the full outp
 
 [Example Output Data](example_data_out)
 
-## 11.2. Scraping Tool
+## 12.2. Scraping Tool
 
 We provide a tool to scrape the digital commonwealth website for all images in this dataset. It can be found in the `data_downloader` folder. It contains it's own readme and install instructions.
 
-## 11.3. Complete Dataset
+## 12.3. Complete Dataset
 The complete dataset can be downloaded from Google Drive here, or re-scraped using the `data_downloader` tool if the latest data is required. One could also jump-start the scraping by downloading our archived dataset and re-running the data-downloader which will only download images not in the dataset. 
 
 [Complete Dataset](https://drive.google.com/file/d/1xbcfguni-1j0uRPfVBPlSILDU8dmXATa/view?usp=sharing)
@@ -367,7 +369,7 @@ The complete dataset can be downloaded from Google Drive here, or re-scraped usi
 [CSV with image links and metadata](https://drive.google.com/file/d/1L5IBr9tGysHQLx0vEGDimnS3MJ8ghISz/view?usp=sharing)
 
 
-## 11.4. Sample Dataset & Results
+## 12.4. Sample Dataset & Results
 
 We also provide the sample dataset which contains 25 issues comprised of 100 images. This is our test data and contains annotations for the number of ground-truth articles per issue. It also contains the output from the current version of the model, including debug data(annotated images etc), article segmentation and OCR results. 
 
@@ -378,21 +380,21 @@ We also provide the sample dataset which contains 25 issues comprised of 100 ima
 
 
 
-# 12. Alternative Methods Tried
+# 13. Alternative Methods Tried
 
  We briefly explored other methods for accomplishing this task, mainly AWS Textract. Although textract tends to do very well with structured data, we did not see a good performance on our dataset. About the only thing it could infer was *rough* column/row data. These divisions often did not indicate the actual location of columns/rows and did not do as good of a job as the model we utilized. 
 
- # 13. Extra Resources
+ # 14. Extra Resources
 
- ## 13.1. EDA
+ ## 14.1. EDA
 
  Some of our EDA work lives in [EDA](EDA/). May or may not be useful for future work.
 
- ## 13.2. Other Tools
+ ## 14.2. Other Tools
 
  [Origami](https://github.com/poke1024/origami) is a tool that is built upon the same model we used(built by the same researcher) that attempts to solve a very similar problem. Results look promising from this tool but we where unable to get it to run on our systems. In code documentation is a bit lacking as well. 
 
-## 13.3. Research Papers
+## 14.3. Research Papers
 
  Here we provide a list of extra resources that anyone else working on this project might find helpful. 
 
