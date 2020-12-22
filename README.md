@@ -1,17 +1,3 @@
-# Grader Note
-You might find this google drive link useful. It contains a terrible jupyter notebook and our presentation. 
-
-**It also has the PDF that analysis the accuracy of our model**
-
-[Folder](https://drive.google.com/drive/u/1/folders/13D8uShWSfLllCUA1lYtNI8m-UihWi00_)
-
-## Dataset location
-
-The location and description of our dataset is described below. It is also stored on the SCC:
-
-> `/restricted/projectnb/cs501t2/ian_thomas/LiberatorProject/CS501-Liberator-Project/data_downloader/output_images`
-
-
 # 1. Table Of Contents
 - [1. Table Of Contents](#1-table-of-contents)
 - [2. Newspaper Article Segmentation](#2-newspaper-article-segmentation)
